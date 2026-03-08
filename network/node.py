@@ -19,6 +19,7 @@ class Node:
         """
         self._identifier = node_id
         self._function = Function(node_id)
+        self._is_fixed = False
 
     @property
     def identifier(self) -> str:
@@ -34,3 +35,13 @@ class Node:
     def function(self, function: Function):
         """Sets the function associated with the node."""
         self._function = function
+
+    @property
+    def is_fixed(self) -> bool:
+        """Returns whether the node is fixed."""
+        return self._is_fixed
+
+    @is_fixed.setter
+    def is_fixed(self, value: bool):
+        """Sets whether the node is fixed."""
+        self._is_fixed = value

@@ -82,7 +82,10 @@ class Updater(ABC):
 
             for updater in network.updaters:
                 updater.apply_update_rules(ctl, updater)
-            ctl.load(network.input_file_network)
+
+            # Generate ASP facts from the internal Network representation
+            asp_facts = network.to_asp_facts()
+            ctl.add("base", [], asp_facts)
             for obs_file in network.observation_files:
                 ctl.load(obs_file)
             ctl.ground([('base', [])])

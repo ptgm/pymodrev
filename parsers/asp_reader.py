@@ -76,22 +76,30 @@ class ASPReader(NetworkReader):
                                 split = split[1].split(')')
                                 split = split[0].split(',')
 
-                                if len(split) != 2:
+                                if len(split) == 1:
+                                    # Handle fixed(node)
+                                    node_id = split[0]
+                                    if not self.validate_input_name(node_id):
+                                        logger.warning(f'WARN!\tInvalid node argument in line {count_line}: {predicates[i]}')
+                                        return -2
+                                    node = network.add_node(node_id)
+                                    node.is_fixed = True
                                     continue
 
-                                if not self.validate_input_name(split[0]) or not self.validate_input_name(split[1]):
-                                    logger.warning(f'WARN!\tInvalid node argument in line {count_line}: {predicates[i]}')
-                                    logger.warning('\t\tNodes names must start with a lower case letter, a digit, or be surrounded by quotation marks.')
-                                    return -2
+                                elif len(split) == 2:
+                                    if not self.validate_input_name(split[0]) or not self.validate_input_name(split[1]):
+                                        logger.warning(f'WARN!\tInvalid node argument in line {count_line}: {predicates[i]}')
+                                        logger.warning('\t\tNodes names must start with a lower case letter, a digit, or be surrounded by quotation marks.')
+                                        return -2
 
-                                start_id, end_id = split[0], split[1]
-                                edge = network.get_edge(start_id, end_id)
+                                    start_id, end_id = split[0], split[1]
+                                    edge = network.get_edge(start_id, end_id)
 
-                                if edge is not None:
-                                    edge.fixed = True
-                                else:
-                                    logger.warning(f'WARN!\tUnrecognized edge on line {count_line}: {predicates[i]} Ignoring...')
-                                continue
+                                    if edge is not None:
+                                        edge.fixed = True
+                                    else:
+                                        logger.warning(f'WARN!\tUnrecognized edge on line {count_line}: {predicates[i]} Ignoring...')
+                                    continue
 
                             elif split[0] == 'functionOr':
                                 split = split[1].split(')')

@@ -25,7 +25,7 @@ def get_reader(filepath: str) -> NetworkReader:
         return ASPReader()
     elif ext == '.bnet':
         return BnetReader()
-    elif ext == '.ginml':
+    elif ext in ('.ginml', '.zginml'):
         return GINMLReader()
     else:
-        raise ValueError(f"Unsupported model file extension: '{ext}'. Supported extensions are: .lp, .bnet, .ginml")
+        raise ValueError(f"Unsupported model file extension: '{ext}'. Supported extensions are: .lp, .bnet, .ginml, .zginml")

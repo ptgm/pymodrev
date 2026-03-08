@@ -170,3 +170,47 @@ class Network:
         Adds an observation file and respective updater to the network.
         """
         self.observation_files_with_updater.append((observation_file, updater))
+
+    def to_asp_facts(self) -> str:
+        """
+        Encodes the network as ASP facts compatible with the clingo rules.
+
+        Generates:
+            - vertex(node).  for each node
+            - fixed(node).   for each fixed node
+            - edge(start, end, sign).  for each edge
+            - functionOr(node, term_id).  for each term in the node's function
+            - functionAnd(node, term_id, regulator).  for each regulator in each term
+
+        Returns:
+            A string containing all ASP facts.
+        """
+        facts = []
+
+        # Emit vertex and fixed facts
+        for node_id, node in self.nodes.items():
+            facts.append(f"vertex({node_id}).")
+            if node.is_fixed:
+                facts.append(f"fixed({node_id}).")
+
+        # Emit edge facts
+        for node_id, edge_list in self.graph.items():
+            for edge in edge_list:
+                facts.append(
+                    f"edge({edge.start_node.identifier},"
+                    f"{edge.end_node.identifier},{edge.sign})."
+                )
+
+        # Emit function facts (functionOr and functionAnd)
+        for node_id, node in self.nodes.items():
+            func = node.function
+            if func.regulators_by_term:
+                for term_id, regulators in func.regulators_by_term.items():
+                    facts.append(f"functionOr({node_id},{term_id}).")
+                    for reg in regulators:
+                        facts.append(
+                            f"functionAnd({node_id},{term_id},{reg})."
+                        )
+
+        return "\n".join(facts) + "\n" if facts else ""
+
