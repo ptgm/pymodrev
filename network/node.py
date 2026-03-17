@@ -19,6 +19,8 @@ class Node:
         """
         self._identifier = node_id
         self._function = Function(node_id)
+        # this is true if user blocks its revistion
+        # not if the node has a constant function
         self._is_fixed = False
 
     @property
