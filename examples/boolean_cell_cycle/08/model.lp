@@ -1,3 +1,14 @@
+vertex(cyca).
+vertex(rb).
+vertex(cycb).
+vertex(cdc20).
+vertex(cdh1).
+vertex(cycd).
+vertex(cyce).
+vertex(e2f).
+vertex(p27).
+vertex(ubch10).
+
 edge(cycb, cdc20, 1).
 edge(rb, cyca, 1).
 edge(cyca, cyca, 1).

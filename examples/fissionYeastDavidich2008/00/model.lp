@@ -1,3 +1,14 @@
+vertex(cdc25).
+vertex(cdc2_cdc13).
+vertex(cdc2_cdc13_a).
+vertex(pp).
+vertex(rum1).
+vertex(sk).
+vertex(slp1).
+vertex(start).
+vertex(ste9).
+vertex(wee1_mik1).
+
 edge(cdc2_cdc13, cdc25, 1).
 edge(pp, cdc25, 0).
 edge(cdc25, cdc25, 1).
