@@ -396,19 +396,19 @@ class InconsistencySolution:
                 for flipped_edge in repair.flipped_edges:
                     repair_data["repairs"].append({
                         "type": "E",
-                        "value": f"({flipped_edge.start_<node.identifier}, {flipped_edge.end_node.identifier})"
+                        "value": f"({flipped_edge.start_node.identifier}, {flipped_edge.end_node.identifier})"
                     })
                 # Adding removed edges
                 for removed_edge in repair.removed_edges:
                     repair_data["repairs"].append({
                         "type": "R",
-                        "value": f"({removed_edge.start_<node.identifier}, {removed_edge.end_node.identifier})"
+                        "value": f"({removed_edge.start_node.identifier}, {removed_edge.end_node.identifier})"
                     })
                 # Adding added edges
                 for added_edge in repair.added_edges:
                     repair_data["repairs"].append({
                         "type": "A",
-                        "value": f"({added_edge.start_<node.identifier}, {added_edge.end_node.identifier})",
+                        "value": f"({added_edge.start_node.identifier}, {added_edge.end_node.identifier})",
                         "sign": added_edge.sign
                     })
                 node_data["repair_set"].append(repair_data)
