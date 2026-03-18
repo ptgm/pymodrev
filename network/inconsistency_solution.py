@@ -266,15 +266,15 @@ class InconsistencySolution:
                         repair_set.n_repair_operations
             target.add_repair_set(repair_set)
 
-    def print_solution(self, verbose_level: int, print_all) -> None:
+    def print_solution(self, print_all) -> None:
         """
         Prints the solution in a human-readable format based on the specified
         verbosity level.
         """
-        if verbose_level < 2:
-            self.print_parsable_solution(verbose_level)
+        if config.verbose < 2:
+            self.print_parsable_solution()
             return
-        if verbose_level == 3:
+        if config.verbose == 3:
             self.print_json_solution(print_all)
             return
         print(f"### Found solution with {self.n_repair_operations} repair operations.")
@@ -306,57 +306,57 @@ class InconsistencySolution:
                     for _id, value in ids.items():
                         print(f"\t\t\t\t{_id} => {value}")
 
-    def print_parsable_solution(self, verbose_level: int) -> None:
+    def print_parsable_solution(self) -> None:
         """
         Prints the solution in a parsable format based on the specified
         verbosity level.
         """
-        if verbose_level > 0:
+        if config.verbose > 0:
             print("[", end="")
         first_node = True
         for i_node in self.inconsistent_nodes.values():
             if not first_node:
-                print(";" if verbose_level > 0 else "/", end="")
+                print(";" if config.verbose > 0 else "/", end="")
             first_node = False
             print(i_node.identifier, end="")
-            print(":{" if verbose_level > 0 else "@", end="")
+            print(":{" if config.verbose > 0 else "@", end="")
             first_repair = True
             for repair in i_node.repair_sets:
                 if not first_repair:
-                    print(";" if verbose_level > 0 else ":", end="")
+                    print(";" if config.verbose > 0 else ":", end="")
                 first_repair = False
-                if verbose_level > 0:
+                if config.verbose > 0:
                     print("{", end="")
                 first = True
                 for added_edge in repair.added_edges:
                     if not first:
-                        print(";" if verbose_level > 0 else ":", end="")
+                        print(";" if config.verbose > 0 else ":", end="")
                     first = False
-                    print(f"A:({added_edge.start_node.identifier},{added_edge.end_node.identifier},{added_edge.sign})" if verbose_level > 0
+                    print(f"A:({added_edge.start_node.identifier},{added_edge.end_node.identifier},{added_edge.sign})" if config.verbose > 0
                           else f"A,{added_edge.start_node.identifier},{added_edge.end_node.identifier},{added_edge.sign}", end="")
                 for removed_edge in repair.removed_edges:
                     if not first:
-                        print(";" if verbose_level > 0 else ":", end="")
+                        print(";" if config.verbose > 0 else ":", end="")
                     first = False
-                    print(f"R:({removed_edge.start_node.identifier},{removed_edge.end_node.identifier})" if verbose_level > 0
+                    print(f"R:({removed_edge.start_node.identifier},{removed_edge.end_node.identifier})" if config.verbose > 0
                           else f"R,{removed_edge.start_node.identifier},{removed_edge.end_node.identifier}", end="")
                 for flipped_edge in repair.flipped_edges:
                     if not first:
-                        print(";" if verbose_level > 0 else ":", end="")
+                        print(";" if config.verbose > 0 else ":", end="")
                     first = False
-                    print(f"E:({flipped_edge.start_node.identifier},{flipped_edge.end_node.identifier})" if verbose_level > 0
+                    print(f"E:({flipped_edge.start_node.identifier},{flipped_edge.end_node.identifier})" if config.verbose > 0
                           else f"E,{flipped_edge.start_node.identifier},{flipped_edge.end_node.identifier}", end="")
                 for repaired_function in repair.repaired_functions:
                     if not first:
-                        print(";" if verbose_level > 0 else ":", end="")
+                        print(";" if config.verbose > 0 else ":", end="")
                     first = False
-                    print(f"F:{repaired_function.print_function()}" if verbose_level > 0
+                    print(f"F:{repaired_function.print_function()}" if config.verbose > 0
                           else f"F,{repaired_function.print_function()}", end="")
-                if verbose_level > 0:
+                if config.verbose > 0:
                     print("}", end="")
-            if verbose_level > 0:
+            if config.verbose > 0:
                 print("}", end="")
-        if verbose_level > 0:
+        if config.verbose > 0:
             print("]", end="")
         print()
 

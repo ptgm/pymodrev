@@ -81,9 +81,9 @@ def model_revision(network: Network) -> None:
                         print("+", end="")
                     else:
                         print("(Sub-Optimal Solution)")
-                inconsistency.print_solution(config.verbose, True)
+                inconsistency.print_solution(True)
     else:
-        best_solution.print_solution(config.verbose, True)
+        best_solution.print_solution(True)
 
 
 def print_consistency(
