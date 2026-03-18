@@ -369,7 +369,7 @@ class InconsistencySolution:
             "node_repairs": []
         }
 
-        for node in self.i_nodes.values():
+        for node in self.inconsistent_nodes.values():
             node_data = {
                 "node": node.identifier,
                 "repair_set": []
