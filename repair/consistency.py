@@ -45,7 +45,7 @@ def n_func_inconsistent_with_label(
     result = Inconsistencies.CONSISTENT.value
     for key in labeling.v_label:
         ret = n_func_inconsistent_with_label_with_profile(network, labeling, function, key)
-        logger.debug(f"Consistency value: {ret} for node {function.node_id} with function: {function.print_function()}")
+        logger.debug(f"Consistency value: {ret} for node {function.node_id} with function: {function.print_function(network=network)}")
         if result == Inconsistencies.CONSISTENT.value:
             result = ret
         else:

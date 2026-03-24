@@ -125,10 +125,13 @@ class Function:
         elif regulator not in self.regulators_by_term[term_id]:
             self.regulators_by_term[term_id].append(regulator)
 
-    def print_function(self) -> str:
+    def print_function(self, network=None, repair_set=None) -> str:
         """
         Returns a string representation of the function.
+        If a network is provided, it incorporates edge signs (adding '!' for negative).
+        If a repair_set is provided, it also accounts for flipped or added edges.
         """
+        from network.exceptions import EdgeNotFoundError
         result = ""
         if self.get_n_regulators() < 1:
             result += "Empty function"
@@ -142,7 +145,39 @@ class Function:
                 if not first:
                     result += " && "
                 first = False
-                result += t
+
+                prefix = ""
+                if network is not None:
+                    try:
+                        # 1. Check if it's an added edge in the repair set
+                        found_in_repair = False
+                        if repair_set is not None:
+                            for edge in repair_set.added_edges:
+                                if (edge.start_node.identifier == t and
+                                        edge.end_node.identifier == self.node_id):
+                                    if edge.sign == 0:
+                                        prefix = "!"
+                                    found_in_repair = True
+                                    break
+
+                        if not found_in_repair:
+                            # 2. Check if it's an existing edge
+                            edge = network.get_edge(t, self.node_id)
+                            sign = edge.sign
+                            # 3. Check if it's flipped in the repair set
+                            if repair_set is not None:
+                                for flipped in repair_set.flipped_edges:
+                                    if (flipped.start_node.identifier == t and
+                                            flipped.end_node.identifier == self.node_id):
+                                        sign = 1 - sign
+                                        break
+                            if sign == 0:
+                                prefix = "!"
+                    except (EdgeNotFoundError, AttributeError):
+                        # Fallback if edge not found or nodes not properly set up
+                        prefix = ""
+
+                result += prefix + t
             result += ")"
             if i < self.get_n_terms():
                 result += " || "

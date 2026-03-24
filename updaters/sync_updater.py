@@ -44,7 +44,7 @@ class SyncUpdater(TimeSeriesUpdater):
         clauses are satisfied at each time step. It considers both stable states
         and dynamic updates based on the profile's labeling.
         """
-        logger.debug(f"Checking consistency of function: {function.print_function()} of node {function.node_id}")
+        logger.debug(f"Checking consistency of node {function.node_id} with function: {function.print_function(network=network)}")
 
         profile_map = labeling.v_label[profile]
         time = 0
@@ -94,7 +94,7 @@ class SyncUpdater(TimeSeriesUpdater):
         consistency status (consistent, single inconsistency, or double
         inconsistency) based on the profile.
         """
-        logger.debug(f"Checking consistency of function: {function.print_function()} of node {function.node_id}")
+        logger.debug(f"Checking consistency of node {function.node_id} with function: {function.print_function(network=network)}")
 
         result = Inconsistencies.CONSISTENT.value
         profile_map = labeling.v_label[profile]

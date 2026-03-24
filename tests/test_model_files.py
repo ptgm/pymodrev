@@ -77,7 +77,7 @@ def test_example_output(example_data, venv_python: str):
             obs_args.extend([str(obs_file), f"{typology}updater"])
 
     # Run main.py and capture stdout to a temp file
-    cmd = [venv_python, "main.py", "-m", model_file, "-obs"] + obs_args + ["-v", "0"] + ["-t", "r"]
+    cmd = [venv_python, "main.py", "-m", model_file, "-obs"] + obs_args + ["-v", "0"] + ["-t", "r"] + ["--sub-opt"]
     result = subprocess.run(
         cmd,
         capture_output=True,

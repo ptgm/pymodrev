@@ -3,11 +3,10 @@ import re
 
 def normalize_logic_expression(expression):
     """
-    Takes a raw logic string like: "(B && A) || (D && C)"
-    Returns a sorted canonical form: (('A', 'B'), ('C', 'D'))
+    Takes a raw logic string like: "(B && A) || (D && !C)"
+    Returns a sorted canonical form: (('!C', 'D'), ('A', 'B'))
     """
     # 1. Split by OR (||)
-    # We use a list to collect the clauses
     clauses = expression.split('||')
     
     canonical_clauses = []
@@ -21,35 +20,50 @@ def normalize_logic_expression(expression):
         # 3. Split by AND (&&) to get the variables
         variables = [v.strip() for v in clean_clause.split('&&')]
         
-        # 4. Sort variables alphabetically so (B && A) becomes (A, B)
-        # Convert to tuple to make it hashable/immutable
+        # 4. Sort variables alphabetically
         canonical_clauses.append(tuple(sorted(variables)))
     
-    # 5. Sort the clauses themselves so ((C,D), (A,B)) becomes ((A,B), (C,D))
+    # 5. Sort the clauses themselves
     return tuple(sorted(canonical_clauses))
 
-def parse_logic_line(chunk):
+def parse_op(node, op_str):
     """
-    Parses a full logic line like: "rb@F, (A && B) || (C)"
-    Returns: ('LOGIC', 'rb@F', (('A', 'B'), ('C')))
+    Parses an operation string like 'F,(A && !B) || (C)' or 'E,A,B'
+    Returns a canonical tuple.
     """
-    header, expression = chunk.split(',', 1)
-    canonical_expr = normalize_logic_expression(expression)
-    return ('LOGIC', header.strip(), canonical_expr)
-
-def parse_interaction_line(node, chunk):
-    # Split by ; or : (regular expression)
-    parts = re.split(r'[;:]', chunk)
+    if ',' not in op_str:
+        return (node, op_str)
     
-    # Clean and sort the interaction strings
-    # e.g. " cycb@E... " -> "cycb@E..."
-    return [node + '@' + p.strip() for p in parts if p.strip()]
+    parts = op_str.split(',', 1)
+    op_type = parts[0].strip()
+    rest = parts[1].strip()
+    
+    if op_type == 'F':
+        canonical_expr = normalize_logic_expression(rest)
+        return ('F', node, canonical_expr)
+    else:
+        # For E, A, R: treat the rest as a simple comma-separated tuple
+        return (op_type, node, tuple(v.strip() for v in rest.split(',')))
 
 def parse_file(filepath):
-    with open(filepath, 'r') as f:
-        content = f.read().strip()
+    """
+    Parses a pymodrev output file into a set of repair sets.
+    Each repair set is represented as a frozenset of operations.
+    """
+    try:
+        with open(filepath, 'r') as f:
+            content = f.read().strip()
+    except FileNotFoundError:
+        return set()
+
+    if not content:
+        return set()
+    
     if 'Consistent!' in content:
-        return content
+        return {'Consistent!'}
+
+    # Remove the "Inconsistent!" header if present
+    content = content.replace('Inconsistent!', '').strip()
 
     # Split by the main separator '/' between nodes
     raw_chunks = content.split('/')
@@ -59,13 +73,25 @@ def parse_file(filepath):
         if not chunk:
             continue
 
-        if ':' in chunk or ';' in chunk:
-            fields = chunk.split('@')
-            node, clean_chunk = fields[0], fields[1]
-            for subchunk in parse_interaction_line(node, clean_chunk):
-                parsed_data.add(parse_logic_line(subchunk))
+        if '@' in chunk:
+            node, rest = chunk.split('@', 1)
+            # Different repair sets for the same node are separated by ';'
+            repair_sets = rest.split(';')
+            for rs_str in repair_sets:
+                if not rs_str.strip():
+                    continue
+                # Individual operations within a repair set are separated by ':'
+                ops = rs_str.split(':')
+                canonical_rs = []
+                for op in ops:
+                    if not op.strip():
+                        continue
+                    canonical_rs.append(parse_op(node, op.strip()))
+                # Store as frozenset to make it hashable and order-independent
+                parsed_data.add(frozenset(canonical_rs))
         else:
-            parsed_data.add(parse_logic_line(chunk))
+            # Fallback for cases like simple node lists
+            parsed_data.add(frozenset([(chunk,)]))
             
     return parsed_data
 
@@ -77,7 +103,7 @@ def main():
     file2 = sys.argv[-1]
 
     try:
-        # Parse both files into canonical sets
+        # Parse both files into sets of repair sets
         data1 = parse_file(file1)
         data2 = parse_file(file2)
 
@@ -87,14 +113,15 @@ def main():
             only_in_2 = data2 - data1
             
             if only_in_1:
-                print(f"  {file1}")
-                for item in only_in_1:
-                    print(f"    {item}")
+                print(f"  Only in {file1}:")
+                for rs in sorted(list(only_in_1), key=str):
+                    # Pretty print the frozenset
+                    print(f"    {sorted(list(rs), key=str)}")
                     
             if only_in_2:
-                print(f"  {file2}")
-                for item in only_in_2:
-                    print(f"    {item}")
+                print(f"  Only in {file2}:")
+                for rs in sorted(list(only_in_2), key=str):
+                    print(f"    {sorted(list(rs), key=str)}")
 
     except FileNotFoundError as e:
         print(f"Error: File not found - {e.filename}")

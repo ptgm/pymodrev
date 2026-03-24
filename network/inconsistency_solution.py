@@ -249,18 +249,18 @@ class InconsistencySolution:
                     self.n_repair_operations += repair_set.n_repair_operations
             target.add_repair_set(repair_set)
 
-    def print_solution(self) -> None:
+    def print_solution(self, network=None) -> None:
         """
         Prints the solution based on the specified verbosity level.
         """
         if config.verbose == 0:
-            self.print_compact_v0_solution()
+            self.print_compact_v0_solution(network=network)
         elif config.verbose == 1:
-            self.print_json_v1_solution()
+            self.print_json_v1_solution(network=network)
         else:
-            self.print_human_v2_solution()
+            self.print_human_v2_solution(network=network)
 
-    def print_compact_v0_solution(self) -> None:
+    def print_compact_v0_solution(self, network=None) -> None:
         """
         Prints the solution in a compact format.
         """
@@ -274,7 +274,7 @@ class InconsistencySolution:
             first_repair = True
             for repair in i_node.repair_sets:
                 if not first_repair:
-                    print(":", end="")
+                    print(";", end="")
                 first_repair = False
                 first = True
                 for added_edge in repair.added_edges:
@@ -296,10 +296,10 @@ class InconsistencySolution:
                     if not first:
                         print(":", end="")
                     first = False
-                    print(f"F,{repaired_function.print_function()}", end="")
+                    print(f"F,{repaired_function.print_function(network=network, repair_set=repair)}", end="")
         print()
 
-    def print_json_v1_solution(self):
+    def print_json_v1_solution(self, network=None):
         """
         Prints the solution in JSON format.
         """
@@ -329,7 +329,7 @@ class InconsistencySolution:
                 for func in repair.repaired_functions:
                     repair_data["repairs"].append({
                         "type": "F",
-                        "value": func.print_function()
+                        "value": func.print_function(network=network, repair_set=repair)
                     })
                 # Adding flipped edges
                 for flipped_edge in repair.flipped_edges:
@@ -354,7 +354,7 @@ class InconsistencySolution:
             result["node_repairs"].append(node_data)
         print(json.dumps(result, indent=4))
 
-    def print_human_v2_solution(self) -> None:
+    def print_human_v2_solution(self, network=None) -> None:
         """
         Prints the solution in a human-readable format.
         """
@@ -366,13 +366,18 @@ class InconsistencySolution:
                 print(f"\t\tRepair #{i}:")
                 i += 1
                 for repaired_function in repair.repaired_functions:
-                    print(f"\t\t\tChange function of {repaired_function.node_id} to {repaired_function.print_function()}.")
+                    print(f"\t\t\tChange function of {repaired_function.node_id} to: " + \
+                        f"{repaired_function.print_function(network=network, repair_set=repair)}")
                 for flipped_edge in repair.flipped_edges:
-                    print(f"\t\t\tFlip sign of edge ({flipped_edge.start_node.identifier},{flipped_edge.end_node.identifier}).")
+                    print(f"\t\t\tFlip sign of edge ({flipped_edge.start_node.identifier}," + \
+                        f"{flipped_edge.end_node.identifier}) to: " + \
+                        ("negative" if flipped_edge.sign == 1 else "positive"))
                 for removed_edge in repair.removed_edges:
-                    print(f"\t\t\tRemove edge ({removed_edge.start_node.identifier},{removed_edge.end_node.identifier}).")
+                    print(f"\t\t\tRemove edge ({removed_edge.start_node.identifier}," + \
+                        f"{removed_edge.end_node.identifier}).")
                 for added_edge in repair.added_edges:
-                    print(f"\t\t\tAdd edge ({added_edge.start_node.identifier},{added_edge.end_node.identifier}) with sign {added_edge.sign}.")
+                    print(f"\t\t\tAdd edge ({added_edge.start_node.identifier}," + \
+                        f"{added_edge.end_node.identifier}) with sign {added_edge.sign}.")
         if config.labelling:
             print("\t### Labelling for this solution:")
             multiple_profiles = config.multiple_profiles

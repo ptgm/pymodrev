@@ -42,7 +42,7 @@ class SteadyStateUpdater(Updater):
         expected steady-state behavior of the network. This method assumes a
         single time mapping is present in the label profile.
         """
-        logger.debug(f"Checking consistency of function: {function.print_function()} of node {function.node_id}")
+        logger.debug(f"Checking consistency of node {function.node_id} with function: {function.print_function(network=network)}")
 
         profile_map = labeling.v_label[profile]
 
@@ -81,7 +81,7 @@ class SteadyStateUpdater(Updater):
         consistency status (consistent, single inconsistency, or double
         inconsistency) based on the profile.
         """
-        logger.debug(f"Checking consistency of function: {function.print_function()} of node {function.node_id}")
+        logger.debug(f"Checking consistency of node {function.node_id} with function: {function.print_function(network=network)}")
 
         profile_map = labeling.v_label[profile]
         # For steady state, we expect exactly one time mapping

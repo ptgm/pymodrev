@@ -62,7 +62,33 @@ def test_function_string_rep():
     f.add_regulator_to_term(1, "A")
     f.add_regulator_to_term(1, "B")
     f.add_regulator_to_term(2, "C")
+    
+    # 1. Without network (no signs)
     assert f.print_function() == "(A && B) || (C)"
+
+    # 2. With network (sign-aware)
+    from network.network import Network
+    net = Network()
+    A = net.add_node("A")
+    B = net.add_node("B")
+    C = net.add_node("C")
+    node1 = net.add_node("node1")
+    
+    net.add_edge(A, node1, 0) # Negative
+    net.add_edge(B, node1, 1) # Positive
+    net.add_edge(C, node1, 1) # Positive
+    
+    assert f.print_function(network=net) == "(!A && B) || (C)"
+
+    # 3. With repair_set (account for flips)
+    from network.repair_set import RepairSet
+    from network.edge import Edge
+    rs = RepairSet()
+    # Flip A back to positive, flip B to negative
+    rs.add_flipped_edge(Edge(A, node1, 0))
+    rs.add_flipped_edge(Edge(B, node1, 1))
+    
+    assert f.print_function(network=net, repair_set=rs) == "(A && !B) || (C)"
 
 def test_pfh_integration():
     f = Function("node1")

@@ -45,7 +45,7 @@ class AsyncUpdater(TimeSeriesUpdater):
         time series (i.e. multiple time points) and does not handle a
         steady-state scenario.
         """
-        logger.debug(f"Checking consistency of function: {function.print_function()} of node {function.node_id}")
+        logger.debug(f"Checking consistency of node {function.node_id} with function: {function.print_function(network=network)}")
 
         profile_map = labeling.v_label[profile]
         time = 0
@@ -102,7 +102,7 @@ class AsyncUpdater(TimeSeriesUpdater):
         inconsistency) based on the profile.
         """
 
-        logger.debug(f"Checking consistency of function: {function.print_function()} of node {function.node_id}")
+        logger.debug(f"Checking consistency of node {function.node_id} with function: {function.print_function(network=network)}")
         result = Inconsistencies.CONSISTENT.value
         profile_map = labeling.v_label[profile]
         time = 0

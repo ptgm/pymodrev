@@ -145,7 +145,7 @@ def search_non_comparable_functions(
 
     candidates.append(new_f)
 
-    logger.debug(f"Finding functions for double inconsistency in {original_f.print_function()}")
+    logger.debug(f"Finding functions for double inconsistency in {original_f.print_function(network=network)}")
 
     counter = 0
     while candidates:
@@ -162,7 +162,7 @@ def search_non_comparable_functions(
             is_consistent = True
             consistent_functions.append(candidate)
             if not function_repaired:
-                logger.debug(f"Found first function at level {candidate.distance_from_original} {candidate.print_function()}")
+                logger.debug(f"Found first function at level {candidate.distance_from_original} {candidate.print_function(network=network)}")
             function_repaired, sol_found = True, True
             if level_compare:
                 cmp = original_f.compare_level(candidate)

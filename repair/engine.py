@@ -72,12 +72,12 @@ def model_revision(
                     else:
                         print("(Sub-Optimal Solution)")
                 if config.task == 'r':
-                    inconsistency.print_solution()
+                    inconsistency.print_solution(network=network)
                 else:
                     solutions2apply.add(inconsistency)
     else:
         if config.task == 'r':
-            best_solution.print_solution()
+            best_solution.print_solution(network=network)
         else:
             solutions2apply.add(best_solution)
 
