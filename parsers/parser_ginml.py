@@ -20,6 +20,13 @@ class GINMLParser(NetworkParser):
     Also writes networks back to .ginml or .zginml format.
     """
 
+    def __init__(self):
+        super().__init__()
+        self._original_xml_content = None
+        self._original_zip_contents = {}
+        self._ginml_filename_in_zip = None
+        self._doctype = '<!DOCTYPE gxl SYSTEM "http://ginsim.org/GINML_2_2.dtd">'
+
     def read(self, network: Network, filepath: str) -> int:
         """
         Main entry point for reading a local .ginml or .zginml file.
@@ -39,20 +46,23 @@ class GINMLParser(NetworkParser):
                     # But we can just search for the first .ginml file
                     ginml_file = None
                     for name in zf.namelist():
-                        if name.endswith('.ginml'):
+                        if name.endswith('.ginml') and ginml_file is None:
                             ginml_file = name
-                            break
+                            xml_content = zf.read(name)
+                        else:
+                            self._original_zip_contents[name] = zf.read(name)
                     if not ginml_file:
                         logger.error(f"ERROR! No .ginml file found inside zip {filepath}")
                         return -1
-                    xml_content = zf.read(ginml_file)
+                    self._ginml_filename_in_zip = ginml_file
             except zipfile.BadZipFile:
                 raise ValueError(f"ERROR! Invalid zip format for {filepath}")
         elif filepath.endswith(".ginml"):
             with open(filepath, 'rb') as f:
                 xml_content = f.read()
-        else:
             raise ValueError(f"ERROR! Unsupported file extension for {filepath}")
+
+        self._original_xml_content = xml_content
 
         # Parse XML
         try:
@@ -121,7 +131,93 @@ class GINMLParser(NetworkParser):
 
     def _build_ginml_xml(self, network: Network) -> str:
         """
-        Build the GINML XML string from a Network object.
+        Build the GINML XML string by updating the original XML structure 
+        based on the modified Network object.
+        """
+        if not hasattr(self, '_original_xml_content') or self._original_xml_content is None:
+            return self._build_ginml_xml_scratch(network)
+
+        ET.register_namespace('', 'http://ginsim.org/GINML_2_2.dtd')
+        ET.register_namespace('xlink', 'http://www.w3.org/1999/xlink')
+        
+        try:
+            tree = ET.ElementTree(ET.fromstring(self._original_xml_content))
+        except Exception:
+            return self._build_ginml_xml_scratch(network)
+
+        root = tree.getroot()
+        graph = root.find('.//graph')
+        if graph is None:
+            return self._build_ginml_xml_scratch(network)
+
+        # Update nodes
+        for node_id, node in network.nodes.items():
+            node_elem = graph.find(f".//node[@id='{node_id}']")
+            if node_elem is None:
+                continue
+
+            func = node.function
+            is_input = (node_id in network.regulators.get(node_id, []) and 
+                        func.regulators == [node_id] and 
+                        len(func.regulators_by_term) == 1)
+
+            if is_input:
+                node_elem.set('input', 'true')
+                # Remove any existing value/exp block
+                for val in node_elem.findall('value'):
+                    node_elem.remove(val)
+            elif func.regulators_by_term:
+                # Need an <exp> string
+                expr_str = self._function_to_expression(network, node_id, func)
+                
+                # Find or create <value val="1"><exp str="..."/></value>
+                val_elem = node_elem.find(".//value[@val='1']")
+                if val_elem is None:
+                    # Create value elem
+                    val_elem = ET.SubElement(node_elem, 'value', val="1")
+                
+                exp_elem = val_elem.find('exp')
+                if exp_elem is None:
+                    exp_elem = ET.SubElement(val_elem, 'exp')
+                
+                # Do NOT escape the string here because ET will escape it automatically!
+                exp_elem.set('str', expr_str)
+            else:
+                # No regulators (empty function)
+                for val in node_elem.findall('value'):
+                    node_elem.remove(val)
+
+        # Update edges
+        # First remove all old edges
+        for edge_elem in graph.findall('edge'):
+            graph.remove(edge_elem)
+        
+        # Add edges exactly as they are in the network
+        for node_id, edge_list in network.graph.items():
+            for edge in edge_list:
+                start_id = edge.start_node.identifier
+                end_id = edge.end_node.identifier
+                sign_str = "negative" if edge.sign == 0 else "positive"
+                edge_id = f"{start_id}:{end_id}"
+                
+                # create new edge element
+                ET.SubElement(graph, 'edge', id=edge_id, 
+                              **{'from': start_id}, to=end_id, 
+                              minvalue="1", sign=sign_str)
+
+        # Serialize
+        xml_str = ET.tostring(root, encoding='utf-8').decode('utf-8')
+        
+        # Add xml declaration and doctype
+        lines = []
+        lines.append('<?xml version="1.0" encoding="UTF-8"?>')
+        lines.append(getattr(self, '_doctype', '<!DOCTYPE gxl SYSTEM "http://ginsim.org/GINML_2_2.dtd">'))
+        lines.append(xml_str)
+        return "\n".join(lines)
+
+    def _build_ginml_xml_scratch(self, network: Network) -> str:
+        """
+        Build the GINML XML string from a Network object from scratch.
         
         Generates XML matching the GINsim regulatory graph format with:
         - <gxl> root element
@@ -224,10 +320,10 @@ class GINMLParser(NetworkParser):
         if filename.endswith(".zginml"):
             try:
                 with zipfile.ZipFile(filename, 'w', zipfile.ZIP_DEFLATED) as zf:
-                    zf.writestr(
-                        "GINsim-data/regulatoryGraph.ginml",
-                        ginml_content
-                    )
+                    for name, content in self._original_zip_contents.items():
+                        zf.writestr(name, content)
+                    out_name = self._ginml_filename_in_zip or "GINsim-data/regulatoryGraph.ginml"
+                    zf.writestr(out_name, ginml_content)
             except IOError as exc:
                 raise ValueError(
                     f"ERROR!\tCannot write to file {filename}"
