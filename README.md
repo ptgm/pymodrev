@@ -1,35 +1,34 @@
-## pyModRev: A Python Model Revision tool for Boolean logical models
+## pymodrev: A python Model Revision tool for Boolean logical models
 
-**pyModRev** is a Python-based reimplementation of [ModRev](https://github.com/FilipeGouveia/ModRev), a tool for automated **consistency checking** and **repair** of Boolean network models using **Answer Set Programming (ASP)**. Given a Boolean model and a set of experimental observations (steady-state or time-series), pyModRev determines whether the model explains the data. If inconsistencies are found, it identifies **minimal repair operations** to fix the model.
+**pymodrev** is a Python-based reimplementation of [ModRev](https://github.com/FilipeGouveia/ModRev), a tool for automated **consistency checking** and **repair** of Boolean network models using **Answer Set Programming (ASP)**. Given a Boolean model and a set of experimental observations (steady-state or time-series), pymodrev determines whether the model explains the data. If inconsistencies are found, it identifies **minimal repair operations** to fix the model.
 
-Built on top of the [Clingo](https://potassco.org/clingo/) ASP solver and the [`pyfunctionhood`](https://github.com/ptgm/pyfunctionhood) library, pyModRev brings modern usability and extensibility to the model revision process by offering:
+Built on top of the [Clingo](https://potassco.org/clingo/) ASP solver and the [`pyfunctionhood`](https://github.com/ptgm/pyfunctionhood) library, pymodrev brings modern usability and extensibility to the model revision process by offering:
 
-* ✅ **Full parity with ModRev's core logic**, using the same ASP encodings
-* 🧩 **Modular architecture** with pluggable update policies (synchronous, asynchronous, complete, steady-state)
-* 🐍 **Pure Python interface**, ideal for integration with scientific workflows
-* 📁 **In-memory model and observation management**, enabling multiple consistency checks without reloading
-* ⚙️ **Command-line interface** for batch processing and reproducibility
+* ✅ **Full parity with [ModRev](https://filipegouveia.github.io/ModRev/)'s core logic**, using the same ASP encodings
+* ✅ **Modular architecture** with pluggable update policies (synchronous, asynchronous, complete, steady-state)
+* ✅ **Pure Python interface**, ideal for integration with scientific workflows
+* ✅ **In-memory model and observation management**, enabling multiple consistency checks without reloading
+* ✅ **Command-line interface** for batch processing and reproducibility
 
 ---
 ### Install
 
-You need to install some dependencies using pip.
+You need to install the following dependencies using pip: `bitarray`, `pyfunctionhood`, `clingo`.
 
-If your distribution prevents you to install pip packages system-wide,
-please first create a Python environment:
+If your distribution prevents you to install pip packages system-wide, the simplest way is to first create a Python environment:
 ```
 $ python -m venv venv
 $ source venv/bin/activate
 ```
 
-Then install the dependencies simply by:
+Then install the all the dependencies simply run:
 ```
-$ pip install -r requirements.txt
+$ ./venv/bin/pip install -r requirements.txt
 ```
 
-To run all the tests (using the created `venv` environment)
+To test that everything is working, please run all the tests (using the created `venv` environment)
 ```
-$ ./venv/bin/python3 -m pytest tests/ -v
+$ ./venv/bin/python -m pytest tests/ -v
 ```
 
 
@@ -37,12 +36,95 @@ $ ./venv/bin/python3 -m pytest tests/ -v
 
 ### Getting Started
 
-To run pyModRev:
+Boolean models can be specified using the following formats:
+
+* `.lp` - using original [ModRev](https://filipegouveia.github.io/ModRev/) ASP encoding
+* `.bnet` - using the BoolNet format (only boolean rules)
+* `.ginml` / `.zginml` - using the widely used GINsim format (conserving the model layout information)
+
+To run pyModRev with a boolean model and observations you can use `-h` to see the list of options
 
 ```bash
-$ python3 main.py -m <model_file.lp> -obs <observation.lp> <updater> [options]
+./venv/bin/python3 main.py -h
+```
+```bash
+usage: main.py [-h] -m MODEL -obs OBS [UPDATER ...] -t {c,r,m} [--exhaustive-search] [--sub-opt] [--all-opt]
+               [-v {0,1,2}] [-d]
+
+options:
+  -h, --help            show this help message and exit
+  -m, --model MODEL     Input model file.
+  -obs, --observations OBS [UPDATER ...]
+                        List of observation files and updater pairs.
+                        Each observation must be followed by its updater type. 
+                        Example: -obs obs1.lp asyncupdater obs2.lp syncupdater
+  -t, --task {c,r,m}    Specify the task to perform (default=r):
+                           c - check for consistency
+                           r - get repairs
+                           m - get repaired models
+  --exhaustive-search   Force exhaustive search of function repair operations (default=false).
+  --sub-opt             Show sub-optimal solutions found (default=false).
+  --all-opt             Computes all optimal solutions (default=true).
+                        Stops at first optimal solution if false.
+  -v, --verbose {0,1,2}
+                        Specify output verbose level (default=2):
+                            0 - compact format
+                            1 - json format
+                            2 - human-readable format
+  -d, --debug           Enable debug mode.
 ```
 
+
+#### Example: check consistency
+
+Using option `-t c`, `pymodrev` will report the minimal set of nodes that need to be repaired in order to make the model consistent with the given observations.
+
+```bash
+./venv/bin/python3 main.py -m examples/boolean_cell_cycle/03/model.bnet -obs examples/boolean_cell_cycle/03/steadystate.lp steadystateupdater -t c
+```
+```bash
+This network is inconsistent!
+  node(s) needing repair: "p27", "rb", "cdc20", "cycd"
+  present in profile(s): "p1"
+```
+
+#### Example: get repairs
+
+Using option `-t r`, `pymodrev` will report the minimal set of repair operations for the model to be consistent with the given observations.
+
+```bash
+./venv/bin/python3 main.py -m examples/boolean_cell_cycle/03/model.bnet -obs examples/boolean_cell_cycle/03/steadystate.lp steadystateupdater -t r
+```
+```bash
+### Found solution with 4 repair operations.
+	Inconsistent node p27.
+		Repair #1:
+			Change function of p27 to: (cyca && !cycb && cycd && !p27) || (!cycb && !cyce)
+	Inconsistent node rb.
+		Repair #1:
+			Change function of rb to: (!cycb && cycd && !p27) || (!cycb && cycd && cyce) || (!cycb && !cyca)
+	Inconsistent node cdc20.
+		Repair #1:
+			Flip sign of edge (cycb,cdc20) to: positive
+	Inconsistent node cycd.
+		Repair #1:
+			Flip sign of edge (cycd,cycd) to: positive
+```
+
+#### Example: get repaired models
+
+Using option `-t m`, `pymodrev` will apply the repairs to the model and write to disk the repaired models consistent with the given observations.
+
+```bash
+./venv/bin/python3 main.py -m examples/boolean_cell_cycle/03/model.bnet -obs examples/boolean_cell_cycle/03/steadystate.lp steadystateupdater -t m
+```
+Repaired models keep the original name followed by a number, representing the number of minimal alternative repairs.
+For example, one could have:
+
+* `model_1.bnet ... model_2.bnet`, if there were only two possible minimal repaired models.
+* `model_01.bnet ... model_18.bnet`, if there were eighteen possible minimal repaired models.
+
+---
 
 ### Authors
 * Filipe Gouveia ([https://github.com/FilipeGouveia](https://github.com/FilipeGouveia))
