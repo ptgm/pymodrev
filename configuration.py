@@ -52,9 +52,9 @@ class UpdateType(Enum):
 class Configuration:
     """Class representing the configuration settings for the system"""
     name: str = 'pyModRev'
-    version: str = '1.1.0'
-    task: str = 'r'
-    verbose: int = 2
+    version: str = '1.0'
+    task: str = 'r' # default is show the repairs
+    verbose: int = 2 # default is human-readable format
     update: UpdateType = UpdateType.ASYNC  # Setting the update type to ASYNC
     debug: bool = False
     check_asp: bool = True  # Use ASP consistency check program

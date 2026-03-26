@@ -8,6 +8,7 @@ from parsers.boolean_expression import (
     parse_and_minimise_expression,
     add_positive_autoregulation
 )
+from configuration import config
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,6 @@ class GINMLParser(NetworkParser):
         elif filepath.endswith(".ginml"):
             with open(filepath, 'rb') as f:
                 xml_content = f.read()
-            raise ValueError(f"ERROR! Unsupported file extension for {filepath}")
 
         self._original_xml_content = xml_content
 
@@ -89,7 +89,7 @@ class GINMLParser(NetworkParser):
             try:
                 if int(maxvalue) > 1:
                     logger.error(
-                        f"PyModRev only supports Boolean networks! "
+                        f"{config.name} only supports Boolean networks! "
                         f"Node {node_id} has maxvalue={maxvalue}."
                     )
                     return -1
@@ -106,8 +106,13 @@ class GINMLParser(NetworkParser):
                 add_positive_autoregulation(network, node_obj, node_id)
                 continue
 
+            # Check if parameter is used for logical parsing instead of expressions
+            parameter_elem = node_elem.find(".//parameter")
+            if parameter_elem is not None:
+                raise ValueError(f"ERROR! {config.name} does not support <parameter> function definitions. " \
+                        + f"Found in node {node_id}.\nPlease define it as a logical function instead.")
+
             # Look for boolean expression: <value val="1"><exp str="..."/></value>
-            # or parameter logical parsing (which we skip now)
             value_elem = node_elem.find(".//value[@val='1']")
             if value_elem is not None:
                 exp_elem = value_elem.find('exp')
