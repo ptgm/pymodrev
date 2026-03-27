@@ -10,6 +10,7 @@ Each test case:
 import subprocess
 import tempfile
 import os
+import shutil
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -109,3 +110,61 @@ def test_example_output(example_data, venv_python: str):
         )
     finally:
         os.unlink(tmp_path)
+
+def test_example_repair(example_data, venv_python: str):
+    """
+    Runs pymodrev with -t m to generate repaired models,
+    then verifies each model is consistent using -t c -v 0.
+    """
+    example_dir, model_file_path = example_data
+    
+    # 1. Setup temporary directory and copy example files
+    with tempfile.TemporaryDirectory() as tmp_dir_name:
+        tmp_dir = Path(tmp_dir_name)
+        
+        # Copy model file
+        shutil.copy(model_file_path, tmp_dir / model_file_path.name)
+        
+        # Copy all observation .lp files
+        obs_files = []
+        for f in example_dir.iterdir():
+            if f.suffix == ".lp" and "model" not in f.name:
+                shutil.copy(f, tmp_dir / f.name)
+                obs_files.append(tmp_dir / f.name)
+        
+        if not obs_files:
+            return # Should not happen given discover_examples logic
+            
+        # Build observation arguments
+        obs_args = []
+        for obs_file in sorted(obs_files):
+            base = obs_file.stem
+            typology = base.split("_")[0]
+            obs_args.extend([str(obs_file), f"{typology}updater"])
+
+        # 2. Run -t m to generate repaired models
+        model_in_tmp = str(tmp_dir / model_file_path.name)
+        cmd_m = [venv_python, "-m", "pymodrev", "-m", model_in_tmp, "-obs"] + obs_args + ["-t", "m", "--sub-opt"]
+        result_m = subprocess.run(cmd_m, capture_output=True, text=True, cwd=str(PROJECT_ROOT))
+        
+        assert result_m.returncode == 0, f"Failed to generate models:\n{result_m.stderr}"
+
+        # 3. Find generated models (pattern model_*.ext)
+        prefix = model_file_path.stem
+        ext = model_file_path.suffix
+        repaired_models = list(tmp_dir.glob(f"{prefix}_[0-9]*{ext}"))
+        
+        # We expect at least one model if there were repairs to be made
+        # Some examples might already be consistent, but the test suite mainly has inconsistent ones.
+        
+        for rep_model in repaired_models:
+            # 4. Check consistency of each repaired model
+            cmd_c = [venv_python, "-m", "pymodrev", "-m", str(rep_model), "-obs"] + obs_args + ["-t", "c", "-v", "0"]
+            result_c = subprocess.run(cmd_c, capture_output=True, text=True, cwd=str(PROJECT_ROOT))
+            
+            assert result_c.returncode == 0, f"Consistency check failed for {rep_model.name}:\n{result_c.stderr}"
+            assert "Consistent!" in result_c.stdout, (
+                f"Repaired model {rep_model.name} is NOT consistent!\n"
+                f"Output: {result_c.stdout}\n"
+                f"Command: {' '.join(cmd_c)}"
+            )
