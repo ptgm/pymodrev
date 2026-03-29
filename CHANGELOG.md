@@ -4,7 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## v1.0 - Feb 2026
+## v0.2 - Mar 2026
+
+### Added
+- Added `.csv`, `.xls`, and `.xlsx` formats support for observation files.
+
+---
+
+## v0.1 - Mar 2026
 
 ### Added
 - Added `.csv` format support as a proposal for observation files.
@@ -18,8 +25,8 @@ All notable changes to this project will be documented in this file.
 - Support for multiple observation files of the same topology in a single run.
 
 ### Changed
-- Readers have been redesigned as polymorphic **Parsers** (`parser_ginml.py`, `parser_bnet.py`, `parser_asp.py`), capable of both `read()` and `write()` operations.
-- The **BNET** parser now evaluates functions comprehensively using Quine-McCluskey logic reduction, dropping degenerate regulators, and assuming monotonicity (defaulting to positive).
+- Readers have been redesigned as polymorphic Parsers (`parser_ginml.py`, `parser_bnet.py`, `parser_asp.py`), capable of both `read()` and `write()` operations.
+- The BNET parser now evaluates functions comprehensively using Quine-McCluskey logic reduction, dropping degenerate regulators, and assuming monotonicity (defaulting to positive).
 - Repaired `GINsim` networks now retain their original `.ginml` XML layout styling and preserve the inner files of `.zginml` zip archives.
 - Edge signs are explicitly displayed in function repair proposals.
 - Significant refactoring of the repair engine, and simplified dynamic loading of updater classes.
