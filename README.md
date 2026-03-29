@@ -148,7 +148,7 @@ For example, one could have:
 
 ---
 
-### Authors
+### Contributors
 * Filipe Gouveia ([https://github.com/FilipeGouveia](https://github.com/FilipeGouveia))
 * Antonio Romeu ([https://github.com/antonioromeu](https://github.com/antonioromeu))
 * Pedro T. Monteiro ([https://github.com/ptgm](https://github.com/ptgm))
