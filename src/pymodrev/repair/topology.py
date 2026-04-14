@@ -150,8 +150,8 @@ def repair_node_consistency(
 
                     if is_sol:
                         sol_found = True
-                        if config.single_sol:
-                            logger.debug("No more solutions - single_sol")
+                        if config.solutions == 1:
+                            logger.debug("No more solutions - showing only first ASP solution")
                             return
         if sol_found:
             break
@@ -210,8 +210,8 @@ def repair_node_consistency_flipping_edges(
             if is_sol:
                 logger.debug("Is solution by flipping edges")
                 sol_found = True
-                if config.single_sol:
-                    logger.debug("No more solutions - single_sol")
+                if config.solutions == 1:
+                    logger.debug("No more solutions - showing only first ASP solution")
                     return True
         if sol_found:
             logger.debug(f"Ready to end with {n_edges} edges flipped")

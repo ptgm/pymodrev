@@ -48,7 +48,7 @@ def model_revision(
                     or inconsistency.compare_repairs(best_solution) > 0:
                 best_solution = inconsistency
                 logger.debug(f"Found a solution with {best_solution.n_topology_changes} topology changes")
-                if best_solution.n_topology_changes == 0 and config.single_sol:
+                if best_solution.n_topology_changes == 0 and config.sol <= 2:
                     break
         else:
             logger.debug("Reached an impossibility")
@@ -57,13 +57,13 @@ def model_revision(
         logger.info("It was not possible to repair the model.")
         return
     
-    if not config.single_sol:
+    if config.sol > 2:
         for inconsistency in f_inconsistencies:
             logger.debug(f"Checking for printing solution with {inconsistency.n_topology_changes} topology changes")
             if not inconsistency.has_impossibility \
                     and (inconsistency.compare_repairs(best_solution) >= 0
-                         or config.sub_opt):
-                if config.sub_opt and config.task != 'm' \
+                         or config.sol == 4):
+                if config.sol == 4 and config.task != 'm' \
                         and inconsistency.compare_repairs(best_solution) < 0:
                     if config.format != 'h':
                         print("+", end="")
@@ -75,6 +75,11 @@ def model_revision(
                     solutions2apply.append(inconsistency)
     else:
         if config.task == 'r':
+            if config.sol == 1:
+                if config.format != 'h':
+                    print("+", end="")
+                else:
+                    print("(Potential Sub-Optimal Solution)")
             best_solution.print_solution(network=network)
         else:
             solutions2apply.append(best_solution)

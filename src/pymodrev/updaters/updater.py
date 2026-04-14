@@ -97,6 +97,8 @@ class Updater(ABC):
                             res, opt = Updater.parse_cc_model(model)
                             result.append(res)
                             optimization = opt
+                            if config.sol == 1:
+                                break
                 else:
                     optimization = -1
         except Exception as e:

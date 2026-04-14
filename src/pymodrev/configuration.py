@@ -66,14 +66,13 @@ class Configuration:
     debug: bool = False
     check_asp: bool = True  # Use ASP consistency check program
     function_asp: bool = True # Use ASP function program
-    single_sol: bool = False  # Show one or all optimal solutions
+    solutions: int = 3 # Number/Type of solutions presented (default=3)
     labelling: bool = False
     multiple_profiles: bool = True
     compare_level_function: bool = True
     exact_middle_function_determination: bool = True
     ignore_warnings: bool = False
     force_optimum: bool = False
-    sub_opt: bool = False  # Show best solution for each consistency check even if it is not globally optimum
     show_all_functions: bool = True # Show all function repairs for a given node
     check_consistency: bool = False  # Just check the consistency of the model and return
 

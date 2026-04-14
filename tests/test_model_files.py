@@ -78,7 +78,7 @@ def test_example_output(example_data, venv_python: str):
             obs_args.extend([str(obs_file), f"{typology}updater"])
 
     # Run pymodrev as a module and capture stdout to a temp file
-    cmd = [venv_python, "-m", "pymodrev", "-m", model_file, "-obs"] + obs_args + ["-f", "c"] + ["-t", "r"] + ["--sub-opt"]
+    cmd = [venv_python, "-m", "pymodrev", "-m", model_file, "-obs"] + obs_args + ["-f", "c"] + ["-t", "r"] + ["-s", "4"]
     result = subprocess.run(
         cmd,
         capture_output=True,
@@ -144,7 +144,7 @@ def test_example_repair(example_data, venv_python: str):
 
         # 2. Run -t m to generate repaired models
         model_in_tmp = str(tmp_dir / model_file_path.name)
-        cmd_m = [venv_python, "-m", "pymodrev", "-m", model_in_tmp, "-obs"] + obs_args + ["-t", "m", "--sub-opt"]
+        cmd_m = [venv_python, "-m", "pymodrev", "-m", model_in_tmp, "-obs"] + obs_args + ["-t", "m", "-s", "4", "-f", "c"]
         result_m = subprocess.run(cmd_m, capture_output=True, text=True, cwd=str(PROJECT_ROOT))
         
         assert result_m.returncode == 0, f"Failed to generate models:\n{result_m.stderr}"
@@ -159,7 +159,7 @@ def test_example_repair(example_data, venv_python: str):
         
         for rep_model in repaired_models:
             # 4. Check consistency of each repaired model
-            cmd_c = [venv_python, "-m", "pymodrev", "-m", str(rep_model), "-obs"] + obs_args + ["-t", "c", "-f", "c"]
+            cmd_c = [venv_python, "-m", "pymodrev", "-m", str(rep_model), "-obs"] + obs_args + ["-t", "c", "-s", "4", "-f", "c"]
             result_c = subprocess.run(cmd_c, capture_output=True, text=True, cwd=str(PROJECT_ROOT))
             
             assert result_c.returncode == 0, f"Consistency check failed for {rep_model.name}:\n{result_c.stderr}"

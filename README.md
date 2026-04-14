@@ -43,8 +43,8 @@ To run **pymodrev**, use the following command structure:
 $ pymodrev -h
 ```
 ```bash
-usage: pymodrev [-h] -m MODEL -obs OBS [UPDATER ...] -t {c,r,m} [--exhaustive-search] [--sub-opt] [--all-opt]
-               [-v {0,1,2}] [-d]
+usage: pymodrev [-h] -m MODEL -obs OBS [UPDATER ...] -t {c,r,m}
+               [--exhaustive-search] [-s {1,2,3,4}] [-f {c,j,h}] [-d]
 
 options:
   -h, --help            show this help message and exit
@@ -58,14 +58,19 @@ options:
                            r - get repairs
                            m - get repaired models
   --exhaustive-search   Force exhaustive search of function repair operations (default=false).
-  --sub-opt             Show sub-optimal solutions found (default=false).
-  --single-sol          Stops at first optimal solution,
-                        instead of computing all optimal solutions (default=false).
-  -v, --verbose {0,1,2}
-                        Specify output verbose level (default=2):
-                            0 - compact format
-                            1 - json format
-                            2 - human-readable format
+  -s, --solutions {1,2,3,4}
+                        Number/Type of solutions presented (default=3).
+                        All solutions are optimal w.r.t. number of nodes needing repairs.
+                        A solution may be sub-optimal w.r.t. number of repair operations.
+                            1 - Show only the first ASP optimal solution, which may be 
+                                sup-optimal in terms of repairs (fastest)
+                            2 - Show first optimal solution found
+                            3 - Show all optimal solutions
+                            4 - Show all optimal solutions, including sub-optimal repairs
+  -f, --format {c,j,h}  Specify output format (default=h):
+                            c - compact format
+                            j - json format
+                            h - human-readable format
   -d, --debug           Enable debug mode.
 ```
 

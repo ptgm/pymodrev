@@ -34,7 +34,7 @@ def process_arguments(network: Network) -> None:
     )
 
     arg_parser.add_argument("-m", "--model",
-                        required=True, help="Input model file.")
+                        required=True, help="Input model file")
     arg_parser.add_argument("-obs", "--observations", nargs='+', action='extend',
                         required=True, metavar=('OBS', 'UPDATER'),
                         help="""List of observation files and updater pairs.
@@ -47,18 +47,23 @@ Or: -obs obs1.lp asyncupdater -obs obs2.lp syncupdater""")
     r - get repairs
     m - get repaired models""")
     arg_parser.add_argument("--exhaustive-search", action="store_true",
-                        help="Force exhaustive search of function repair operations (default=false).")
-    arg_parser.add_argument("--sub-opt", action="store_true",
-                        help="Show sub-optimal solutions found (default=false).")
-    arg_parser.add_argument("--single-sol", action="store_true",
-                        help="""Stops at first optimal solution,
-instead of computing all optimal solutions (default=false).""")
+                        help="Force exhaustive search of function repair operations (default=false)")
+    arg_parser.add_argument("-s", "--solutions", type=int, choices=[1,2,3,4], default=3,
+                        help="""Number/Type of solutions presented (default=3).
+All solutions are optimal w.r.t. number of nodes needing repairs.
+A solution may be sub-optimal w.r.t. number of repair operations.
+    1 - Show only the first ASP optimal solution, which may be 
+        sup-optimal in terms of repairs (fastest)
+    2 - Show first optimal solution found
+    3 - Show all optimal solutions
+    4 - Show all optimal solutions, including sub-optimal repairs
+    """)
     arg_parser.add_argument("-f", "--format", type=str, choices=['c', 'j', 'h'], default='h',
                         help="""Specify output format (default=h):
     c - compact format
     j - json format
     h - human-readable format""")
-    arg_parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode.")
+    arg_parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode")
 
     args = arg_parser.parse_args()
 
@@ -66,7 +71,7 @@ instead of computing all optimal solutions (default=false).""")
     network.input_file_network = args.model
     config.task = args.task
     config.force_optimum = args.exhaustive_search
-    config.sub_opt = args.sub_opt
+    config.sol = args.solutions
     config.format = args.format
     config.debug = args.debug
 
