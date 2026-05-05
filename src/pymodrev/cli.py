@@ -98,7 +98,7 @@ A solution may be sub-optimal w.r.t. number of repair operations.
             # Get class from module
             updater_class = getattr(module, class_name)()
             # Add class to updaters dictionary
-            updaters[module_name.replace('_','')] = updater_class
+            updaters[module_name.replace('_updater','')] = updater_class
 
     for i in range(0, len(obs_args), 2):
         obs_path = obs_args[i]
@@ -115,7 +115,7 @@ A solution may be sub-optimal w.r.t. number of repair operations.
             network.add_observation(observation)
             network.add_updater(updater)
             
-            if updater_name == 'steadystateupdater':
+            if updater_name == 'steady':
                 network.has_ss_obs = True
             else:
                 network.has_ts_obs = True

@@ -73,7 +73,7 @@ options:
   -obs, --observations OBS [UPDATER ...]
                         List of observation files and updater pairs.
                         Each observation must be followed by its updater type. 
-                        Example: -obs obs1.lp asyncupdater obs2.lp syncupdater
+                        Example: -obs obs1.lp async obs2.lp sync obs3.lp steady
   -t, --task {c,r,m}    Specify the task to perform (default=r):
                            c - check for consistency
                            r - get repairs

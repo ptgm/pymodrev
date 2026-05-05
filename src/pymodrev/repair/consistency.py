@@ -14,7 +14,7 @@ from pymodrev.network.inconsistency_solution import InconsistencySolution
 from pymodrev.network.network import Network
 from pymodrev.network.function import Function
 from pymodrev.updaters.updater import Updater
-from pymodrev.updaters.steady_state_updater import SteadyStateUpdater
+from pymodrev.updaters.steady_updater import SteadyUpdater
 from pymodrev.configuration import config, Inconsistencies
 
 logger = logging.getLogger(__name__)
@@ -67,9 +67,9 @@ def n_func_inconsistent_with_label_with_profile(
     inconsistency) based on the profile.
     """
     if len(labeling.v_label[profile]) == 1 and network.has_ss_obs:
-        return SteadyStateUpdater.n_func_inconsistent_with_label_with_profile(network, labeling, function, profile)
+        return SteadyUpdater.n_func_inconsistent_with_label_with_profile(network, labeling, function, profile)
     for updater in network.updaters:
-        if len(labeling.v_label[profile]) != 1 and updater.__class__.__name__.lower() != SteadyStateUpdater.__name__.lower():
+        if len(labeling.v_label[profile]) != 1 and updater.__class__.__name__.lower() != SteadyUpdater.__name__.lower():
             return updater.n_func_inconsistent_with_label_with_profile(network, labeling, function, profile)
 
 
@@ -98,9 +98,9 @@ def is_func_consistent_with_label_with_profile(
     and dynamic updates based on the profile's labeling.
     """
     if len(labeling.v_label[profile]) == 1 and network.has_ss_obs:
-        return SteadyStateUpdater.is_func_consistent_with_label_with_profile(network, labeling, function, profile)
+        return SteadyUpdater.is_func_consistent_with_label_with_profile(network, labeling, function, profile)
     for updater in network.updaters:
-        if len(labeling.v_label[profile]) != 1 and updater.__class__.__name__.lower() != SteadyStateUpdater.__name__.lower():
+        if len(labeling.v_label[profile]) != 1 and updater.__class__.__name__.lower() != SteadyUpdater.__name__.lower():
             return updater.is_func_consistent_with_label_with_profile(network, labeling, function, profile)
 
 

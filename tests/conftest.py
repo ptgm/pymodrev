@@ -31,7 +31,7 @@ def check_package_resolvable(package_name: str):
 
 @pytest.fixture(scope="session")
 def venv_python():
-    return Path(venv_dir) / "bin" / "python3"
+    return str(Path(venv_dir) / "bin" / "python3")
 
 def pytest_sessionstart(session):
     if not venv_dir:

@@ -14,7 +14,7 @@ from pymodrev.configuration import Inconsistencies
 
 logger = logging.getLogger(__name__)
 
-class SteadyStateUpdater(Updater):
+class SteadyUpdater(Updater):
     """
     This class extends Updater and applies specific rules to ensure
     consistent updates in a steady-state system.
@@ -24,9 +24,9 @@ class SteadyStateUpdater(Updater):
     def get_type() -> str:
         """
         This method to return the update type
-        (e.g., sync, async, etc.).
+        (e.g., sync, async, steady, etc.).
         """
-        return "ss"
+        return "steady"
 
 
     @staticmethod
@@ -36,8 +36,8 @@ class SteadyStateUpdater(Updater):
         (ctl) and applies consistency constraints based on the provided
         configuration.
         """
-        steady_state_lp = os.path.join(os.path.dirname(__file__), '..', 'asp_rules', 'steady_state.lp')
-        ctl.load(steady_state_lp)
+        steady_lp = os.path.join(os.path.dirname(__file__), '..', 'asp_rules', 'steady.lp')
+        ctl.load(steady_lp)
 
 
     @staticmethod
@@ -95,7 +95,7 @@ class SteadyStateUpdater(Updater):
         profile_map = labeling.v_label[profile]
         # For steady state, we expect exactly one time mapping
         # if len(profile_map) != 1:
-        #     print("ERROR: SteadyStateUpdater expects a single time mapping.")
+        #     print("ERROR: SteadyUpdater expects a single time mapping.")
         #     return False
 
         result = Inconsistencies.CONSISTENT.value

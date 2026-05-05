@@ -73,9 +73,9 @@ def test_example_output(example_data, venv_python: str):
     obs_args = []
     for obs_file in sorted(example_dir.iterdir()):
         if obs_file.suffix == ".lp" and "model" not in obs_file.name: # ignores model.ext and model_*.ext
-            base = obs_file.stem           # e.g. "async_1" or "steadystate"
-            typology = base.split("_")[0]   # e.g. "async" or "steadystate"
-            obs_args.extend([str(obs_file), f"{typology}updater"])
+            base = obs_file.stem           # e.g. "async_1" or "steady"
+            typology = base.split("_")[0]   # e.g. "async" or "steady"
+            obs_args.extend([str(obs_file), f"{typology}"])
 
     # Run pymodrev as a module and capture stdout to a temp file
     cmd = [venv_python, "-m", "pymodrev", "-m", model_file, "-obs"] + obs_args + ["-f", "c"] + ["-t", "r"] + ["-s", "4"]
@@ -140,7 +140,7 @@ def test_example_repair(example_data, venv_python: str):
         for obs_file in sorted(obs_files):
             base = obs_file.stem
             typology = base.split("_")[0]
-            obs_args.extend([str(obs_file), f"{typology}updater"])
+            obs_args.extend([str(obs_file), f"{typology}"])
 
         # 2. Run -t m to generate repaired models
         model_in_tmp = str(tmp_dir / model_file_path.name)
