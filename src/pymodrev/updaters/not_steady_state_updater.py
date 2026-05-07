@@ -1,16 +1,16 @@
 """
-This module contains the AvoidSteadyStateUpdater class, which extends the SyncUpdater
+This module contains the NotSteadyStateUpdater class, which extends the SyncUpdater
 to handle synchronous updates with consistency checks to avoid the corresponding given steady-state.
 """
 
 import logging
 import clingo
 import os
-from pymodrev.updaters.sync_updater import SyncUpdater
+from pymodrev.updaters.async_updater import AsyncUpdater
 
 logger = logging.getLogger(__name__)
 
-class AvoidSteadyStateUpdater(SyncUpdater):
+class NotSteadyStateUpdater(AsyncUpdater):
     """
     This class extends SyncUpdater and provides specific rules to ensure
     the consistency of updates to avoid a steady-state.
