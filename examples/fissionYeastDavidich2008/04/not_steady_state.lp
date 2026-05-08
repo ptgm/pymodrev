@@ -1,5 +1,6 @@
 
 exp(p13).
+exp(p13,not_ss).
 obs_vlabel(p13,start,0).
 obs_vlabel(p13,cdc2_cdc13,0).
 obs_vlabel(p13,pp,0).

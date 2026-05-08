@@ -21,6 +21,11 @@ vlabel(P,1,V,0) :- {noneNegative(P,V,Id):functionOr(V,Id)}0, vertex(V), exp(P,no
 %keep all others
 vlabel(P,1,V,S) :- not update(P,0,V), vlabel(P,0,V,S), exp(P,not_ss).
 
+%input nodes
+input(V) :- not functionOr(V,_), vertex(V).
+vlabel(P,1,V,0) :- input(V), vlabel(P,0,V,0), exp(P,not_ss), not r_gen(V), update(P,0,V).
+vlabel(P,1,V,1) :- input(V), vlabel(P,0,V,1), exp(P,not_ss), not r_part(V), update(P,0,V).
+
 %at least one value must change for the given state not to be a steady state
 %:- {vlabel(P,1,V,S1):vlabel(P,0,V,S2),vertex(V),S1!=S2}0, exp(P,not_ss).
 :- update(P,0,V), exp(P,not_ss), vlabel(P,0,V,S), vlabel(P,1,V,S). 
@@ -31,4 +36,6 @@ vlabel(P,1,V,S) :- not update(P,0,V), vlabel(P,0,V,S), exp(P,not_ss).
 % show inconsistent nodes per experiments
 inc(P,V) :- vlabel(P,1,V,0), 1{noneNegative(P,V,Id):functionOr(V,Id)}, vertex(V), exp(P,not_ss), r_part(V), update(P,0,V).
 inc(P,V) :- vlabel(P,1,V,1), {noneNegative(P,V ,Id):functionOr(V,Id)}0, vertex(V), exp(P,not_ss), functionOr(V,_), r_gen(V),update(P,0,V).
+inc(P,V) :- vlabel(P,1,V,0), input(V), vlabel(P,0,V,0), exp(P,not_ss), r_part(V), update(P,0,V).
+inc(P,V) :- vlabel(P,1,V,1), input(V), vlabel(P,0,V,1), exp(P,not_ss), r_gen(V), update(P,0,V).
 #show inc/2.
