@@ -97,12 +97,17 @@ def is_func_consistent_with_label_with_profile(
     clauses are satisfied at each time step. It considers both stable states
     and dynamic updates based on the profile's labeling.
     """
-    if len(labeling.v_label[profile]) == 1 and network.has_ss_obs:
-        return SteadyUpdater.is_func_consistent_with_label_with_profile(network, labeling, function, profile)
-    for updater in network.updaters:
-        if len(labeling.v_label[profile]) != 1 and updater.__class__.__name__.lower() != SteadyUpdater.__name__.lower():
-            return updater.is_func_consistent_with_label_with_profile(network, labeling, function, profile)
-
+    obs = network.get_observation(profile)
+    if obs is not None and obs.updater is not None:
+        return obs.updater.is_func_consistent_with_label_with_profile(network, labeling, function, profile)
+    else:
+        # for backward compatibility but should be removed and never used
+        # an error should be raised if an observation has no updater
+        if len(labeling.v_label[profile]) == 1 and network.has_ss_obs:
+            return SteadyUpdater.is_func_consistent_with_label_with_profile(network, labeling, function, profile)
+        for updater in network.updaters:
+            if len(labeling.v_label[profile]) != 1 and updater.__class__.__name__.lower() != SteadyUpdater.__name__.lower():
+                return updater.is_func_consistent_with_label_with_profile(network, labeling, function, profile)
 
 def get_function_value(
         network: Network,

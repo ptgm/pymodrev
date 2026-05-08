@@ -10,7 +10,6 @@ from pymodrev.network.node import Node
 from pymodrev.network.edge import Edge
 from pymodrev.network.exceptions import EdgeNotFoundError
 
-
 class Network:
     """
     Represents a network of nodes and edges.
@@ -194,5 +193,15 @@ class Network:
         """
         from pymodrev.parsers.parser_asp import ASPParser
         return ASPParser.to_asp_facts(self)
+    
+    def get_observation(self, profile: str) -> Observation:
+        """
+        Gets the observation with a given profile name or expid if it exists
+        """
+        from pymodrev.network.observation import Observation
+        for obs in self._observations:
+            if(profile in obs.experiments):
+                return obs
+        return None
 
 
