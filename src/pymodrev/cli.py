@@ -139,7 +139,10 @@ def main():
         # Mark nodes and edges as fixed (not to be repaired)
         if config.fixed_nodes:
             for node_id in config.fixed_nodes:
-                network.get_node(node_id).is_fixed = True
+                node = network.get_node(node_id)
+                if not node:
+                    raise ValueError(f'ERROR: Node {node_id} not found in the network.')
+                node.is_fixed = True
         if config.fixed_edges:
             for edge_id in config.fixed_edges:
                 nodes = re.split('[,;:]', edge_id)
