@@ -127,8 +127,6 @@ functionAnd(wee1_mik1, 2, pp).
 functionAnd(wee1_mik1, 3, pp).
 functionAnd(wee1_mik1, 3, wee1_mik1).
 
-
-%inputnode
-%vlabel(P, start, 0) :- exp(P).
-%fixed(start).
-%exp(1).
+edge(start, start, 1).
+functionOr(start, 1).
+functionAnd(start, 1, start).
