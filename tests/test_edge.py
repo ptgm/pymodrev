@@ -12,7 +12,7 @@ def test_edge_initialization(sample_nodes):
     assert edge.start_node == node1
     assert edge.end_node == node2
     assert edge.sign == 1
-    assert not edge.fixed
+    assert not edge.is_fixed
 
 def test_edge_flip_sign(sample_nodes):
     node1, node2, _ = sample_nodes
@@ -25,8 +25,8 @@ def test_edge_flip_sign(sample_nodes):
 def test_edge_set_fixed(sample_nodes):
     node1, node2, _ = sample_nodes
     edge = Edge(node1, node2, 1)
-    edge.fixed = True
-    assert edge.fixed
+    edge.is_fixed = True
+    assert edge.is_fixed
 
 def test_edge_equality_and_hash(sample_nodes):
     node1, node2, node3 = sample_nodes

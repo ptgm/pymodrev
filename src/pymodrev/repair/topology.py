@@ -59,7 +59,7 @@ def repair_node_consistency(
 
     for regulator in original_regulators:
         edge = network.get_edge(regulator, original_function.node_id)
-        if edge is not None and not edge.fixed:
+        if edge is not None and not edge.is_fixed:
             list_edges_remove.append(edge)
 
     max_n_remove = len(list_edges_remove)
@@ -178,7 +178,7 @@ def repair_node_consistency_flipping_edges(
 
     for regulator in regulators:
         edge = network.get_edge(regulator, function.node_id)
-        if edge is not None and not edge.fixed:
+        if edge is not None and not edge.is_fixed:
             list_edges.append(edge)
     logger.debug(f"Searching solution flipping edges for {inconsistent_node.identifier}")
 

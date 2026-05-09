@@ -29,8 +29,7 @@ def model_revision(
         3rd - tries to add or remove edges
     """
     if optimization < 0:
-        logger.error("It is not possible to repair this network for now.")
-        logger.error("This may occur if there is at least one node for which from the same input two different outputs are expected (non-deterministic function).")
+        logger.error("Points of repair not found, probably due to fixed edges/nodes or node data expecting different outputs for the same input.")
         return
 
     logger.debug(f"Found {len(f_inconsistencies)} solution(s) with {len(f_inconsistencies[0].inconsistent_nodes)} inconsistent node(s)")
@@ -110,6 +109,8 @@ def print_consistency(
     if config.format == 'c':
         # compact format
         print('Inconsistent!')
+        if optimization < 0 and not unique_inconsistencies:
+            print(' Points of repair not found, probably due to fixed edges/nodes')
         for inconsistency in unique_inconsistencies:
             print(" " + inconsistency.print_inconsistency())
     elif config.format == 'j':

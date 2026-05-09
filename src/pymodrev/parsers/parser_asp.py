@@ -97,7 +97,7 @@ class ASPParser(NetworkParser):
                                     edge = network.get_edge(start_id, end_id)
 
                                     if edge is not None:
-                                        edge.fixed = True
+                                        edge.is_fixed = True
                                     else:
                                         logger.warning(f'WARN!\tUnrecognized edge on line {count_line}: {predicates[i]} Ignoring...')
                                     continue

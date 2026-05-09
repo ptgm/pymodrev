@@ -21,7 +21,7 @@ class Edge:
         self._start_node = start_node
         self._end_node = end_node
         self._sign = sign
-        self._fixed = False
+        self._is_fixed = False
 
     @property
     def start_node(self) -> Node:
@@ -44,14 +44,14 @@ class Edge:
         self._sign = value
 
     @property
-    def fixed(self) -> bool:
+    def is_fixed(self) -> bool:
         """Returns whether the edge is fixed."""
-        return self._fixed
+        return self._is_fixed
 
-    @fixed.setter
-    def fixed(self, value: bool):
+    @is_fixed.setter
+    def is_fixed(self, value: bool):
         """Sets whether the edge is fixed."""
-        self._fixed = value
+        self._is_fixed = value
 
     def flip_sign(self) -> None:
         """

@@ -122,7 +122,7 @@ class Network:
             for edge in self.graph[start_node_id]:
                 if edge.end_node.identifier == end_node_id:
                     return edge
-        raise EdgeNotFoundError(f"Edge from {start_node_id} to {end_node_id} does not exist!")
+        raise EdgeNotFoundError(f"ERROR: Edge from {start_node_id} to {end_node_id} does not exist in the network!")
 
     def add_node(self, node_id: str) -> Node:
         """
