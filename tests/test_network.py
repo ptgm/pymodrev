@@ -2,7 +2,9 @@ import pytest
 from pymodrev.network.network import Network
 from pymodrev.network.edge import Edge
 from pymodrev.network.node import Node
-from pymodrev.network.exceptions import EdgeNotFoundError
+from pymodrev.network.observation import Observation
+from pymodrev.updaters.steady_updater import SteadyUpdater
+from pymodrev.network.exceptions import EdgeNotFoundError, ParseError
 
 @pytest.fixture
 def network():
@@ -58,6 +60,22 @@ def test_network_flags(network):
     network.has_ts_obs = False
     assert not network.has_ts_obs
 
-def test_observation_files(network):
-    network.add_observation_file('obs1.lp')
-    assert 'obs1.lp' in network.observation_files
+def test_observation(network):
+    obs = Observation('obs1.lp', None)
+    obs.experiments.add('exp1')
+    network.add_observation(obs)
+    assert obs in network.observations
+
+def test_get_observation_updater(network):
+    updater = SteadyUpdater()
+    obs = Observation('obs1.lp', updater)
+    obs.experiments.add('exp1')
+    network.add_observation(obs)
+    assert updater == network.get_observation_updater('exp1')
+
+def test_duplicated_observation(network):
+    obs = Observation('obs1.lp', None)
+    obs.experiments.add('exp1')
+    network.add_observation(obs)
+    with pytest.raises(ParseError):
+        network.add_observation(obs)

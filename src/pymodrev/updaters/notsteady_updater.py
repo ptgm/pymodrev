@@ -10,7 +10,7 @@ from pymodrev.updaters.async_updater import AsyncUpdater
 
 logger = logging.getLogger(__name__)
 
-class NotSteadyStateUpdater(AsyncUpdater):
+class NotsteadyUpdater(AsyncUpdater):
     """
     This class extends SyncUpdater and provides specific rules to ensure
     the consistency of updates to avoid a steady-state.

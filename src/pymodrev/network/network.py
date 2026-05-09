@@ -8,7 +8,7 @@ properties such as input files and observations.
 from typing import Dict, List, Set
 from pymodrev.network.node import Node
 from pymodrev.network.edge import Edge
-from pymodrev.network.exceptions import EdgeNotFoundError
+from pymodrev.network.exceptions import EdgeNotFoundError, ParseError
 
 class Network:
     """
@@ -24,7 +24,7 @@ class Network:
         self._graph = {}  # {'node_id_1': [edge_1_2, edge_1_3], 'node_id_2': [edge_2_1], ...}
         self._regulators = {}  # Reverse of graph {'node_id_1': ['node_id_2'], 'node_id_2': ['node_id_1'], 'node_id_3': ['node_id_1'], ...}
         self._input_file_network = ''
-        self._observations = []  # List[Observation]
+        self._observations = {}  # {'exp_id_1': obs_1, 'exp_id_2': obs_1, 'exp_id_3': obs_2,...}
         self._updaters_name = set()
         self._updaters = set()
         self._has_ss_obs = False
@@ -57,17 +57,22 @@ class Network:
     @property
     def observation_files(self) -> List[str]:
         """Returns the list of observation file paths."""
-        return [obs.observation_path for obs in self._observations]
+        return list(set([obs.observation_path for obs in self._observations.values()]))
 
+    @property
+    def observations_dictionary(self) -> Dict[str, Observation]:
+        """Returns the dictionary of [profile, Observation objects]."""
+        return self._observations
+    
     @property
     def observations(self) -> List:
         """Returns the list of Observation objects."""
-        return self._observations
+        return list(set(self._observations.values()))
 
     @property
     def observation_files_with_updater(self) -> List:
         """Returns the list of observation files with their updaters (for compatibility)."""
-        return [(obs.observation_path, obs.updater) for obs in self._observations]
+        return list(set([(obs.observation_path, obs.updater) for obs in self._observations.values()]))
 
     @property
     def updaters_name(self) -> Set:
@@ -166,25 +171,11 @@ class Network:
         """
         Adds an Observation object to the network.
         """
-        self._observations.append(observation)
-
-    def add_observation_file(self, observation_file: str) -> None:
-        """
-        Adds an observation file to the network.
-        deprecated: use add_observation instead.
-        """
-        # This is kept for backward compatibility but won't have an updater associated
-        # unless added via add_observation_file_with_updater
-        from pymodrev.network.observation import Observation
-        self.add_observation(Observation(observation_file, None))
-
-    def add_observation_file_with_updater(self, observation_file: str, updater) -> None:
-        """
-        Adds an observation file and respective updater to the network.
-        deprecated: use add_observation instead.
-        """
-        from pymodrev.network.observation import Observation
-        self.add_observation(Observation(observation_file, updater))
+        for exp in observation.experiments:
+            if exp in self._observations:
+                raise ParseError(f"Duplicated experimental profile {exp}")
+            else:
+                self._observations[exp] = observation
 
     def to_asp_facts(self) -> str:
         """
@@ -194,14 +185,13 @@ class Network:
         from pymodrev.parsers.parser_asp import ASPParser
         return ASPParser.to_asp_facts(self)
     
-    def get_observation(self, profile: str) -> Observation:
+    def get_observation_updater(self, profile: str) -> Updater:
         """
         Gets the observation with a given profile name or expid if it exists
         """
-        from pymodrev.network.observation import Observation
-        for obs in self._observations:
-            if(profile in obs.experiments):
-                return obs
+        obs = self._observations[profile]
+        if obs is not None:
+            return obs.updater
         return None
 
 

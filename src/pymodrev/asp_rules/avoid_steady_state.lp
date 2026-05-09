@@ -36,6 +36,6 @@ vlabel(P,1,V,1) :- input(V), vlabel(P,0,V,1), exp(P,not_ss), not r_part(V), upda
 % show inconsistent nodes per experiments
 inc(P,V) :- vlabel(P,1,V,0), 1{noneNegative(P,V,Id):functionOr(V,Id)}, vertex(V), exp(P,not_ss), r_part(V), update(P,0,V).
 inc(P,V) :- vlabel(P,1,V,1), {noneNegative(P,V ,Id):functionOr(V,Id)}0, vertex(V), exp(P,not_ss), functionOr(V,_), r_gen(V),update(P,0,V).
-inc(P,V) :- vlabel(P,1,V,0), input(V), vlabel(P,0,V,0), exp(P,not_ss), r_part(V), update(P,0,V).
-inc(P,V) :- vlabel(P,1,V,1), input(V), vlabel(P,0,V,1), exp(P,not_ss), r_gen(V), update(P,0,V).
+inc(P,V) :- vlabel(P,1,V,0), input(V), vlabel(P,0,V,1), exp(P,not_ss), r_part(V), update(P,0,V).
+inc(P,V) :- vlabel(P,1,V,1), input(V), vlabel(P,0,V,0), exp(P,not_ss), r_gen(V), update(P,0,V).
 #show inc/2.

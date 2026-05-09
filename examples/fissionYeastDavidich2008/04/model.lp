@@ -130,5 +130,5 @@ functionAnd(wee1_mik1, 3, wee1_mik1).
 
 %inputnode
 %vlabel(P, start, 0) :- exp(P).
-fixed(start).
+%fixed(start).
 %exp(1).
