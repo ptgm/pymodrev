@@ -8,6 +8,7 @@ import argparse
 import sys
 import os
 import logging
+import re
 
 from importlib import util
 from pymodrev.network.network import Network
@@ -18,6 +19,7 @@ from pymodrev.repair.consistency import check_consistency
 from pymodrev.repair.engine import print_consistency
 from pymodrev.repair.repair import apply_repair
 from pymodrev.parsers.parser_observation import get_observation_parser
+from pymodrev.network.exceptions import EdgeNotFoundError
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -39,8 +41,8 @@ def process_arguments(network: Network) -> None:
                         required=True, metavar=('OBS', 'UPDATER'),
                         help="""List of observation files and updater pairs.
 Each observation must be followed by its updater type. 
-Example: -obs obs1.lp asyncupdater obs2.lp syncupdater
-Or: -obs obs1.lp asyncupdater -obs obs2.lp syncupdater""")
+Example: -obs obs1.lp async obs2.lp sync
+Or: -obs obs1.lp async -obs obs2.lp sync""")
     arg_parser.add_argument('-t', '--task', choices=['c', 'r', 'm'], required=True,
                         help="""Specify the task to perform (default=r):
     c - check for consistency
@@ -63,6 +65,8 @@ A solution may be sub-optimal w.r.t. number of repair operations.
     c - compact format
     j - json format
     h - human-readable format""")
+    arg_parser.add_argument("--fixed-nodes", nargs='+', action='extend', help="List of nodes ids not to repair"),
+    arg_parser.add_argument("--fixed-edges", nargs='+', action='extend', help="List of edges ids not to repair"),
     arg_parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode")
 
     args = arg_parser.parse_args()
@@ -73,6 +77,8 @@ A solution may be sub-optimal w.r.t. number of repair operations.
     config.force_optimum = args.exhaustive_search
     config.sol = args.solutions
     config.format = args.format
+    config.fixed_nodes = args.fixed_nodes
+    config.fixed_edges = args.fixed_edges
     config.debug = args.debug
 
     # Activate debug mode
@@ -130,7 +136,17 @@ def main():
     try:
         parser = get_parser(network.input_file_network)
         parse = parser.read(network, network.input_file_network)
-    except ValueError as e:
+        # Mark nodes and edges as fixed (not to be repaired)
+        if config.fixed_nodes:
+            for node_id in config.fixed_nodes:
+                network.get_node(node_id).is_fixed = True
+        if config.fixed_edges:
+            for edge_id in config.fixed_edges:
+                nodes = re.split('[,;:]', edge_id)
+                if len(nodes) != 2:
+                    raise ValueError(f'ERROR: Edge {edge_id} incorrectly defined.')
+                network.get_edge(nodes[0], nodes[1]).is_fixed = True
+    except (ValueError, EdgeNotFoundError) as e:
         logger.error(str(e))
         sys.exit(1)
 
