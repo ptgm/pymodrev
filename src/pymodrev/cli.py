@@ -30,7 +30,9 @@ def process_arguments(network: Network) -> None:
     Process command-line arguments and configure network accordingly.
     """
     arg_parser = argparse.ArgumentParser(
-        description="Model Revision program. Given a model and a set of observations, it determines if the model is consistent. If not, it computes all the minimum number of repair operations in order to render the model consistent.",
+        description="""pyModRev - Python tool for model revision of Boolean networks.
+Given a model and a set of observations, it determines if the model is consistent.
+If not, it computes all the minimum number of repair operations in order to render it consistent.""",
         formatter_class=argparse.RawTextHelpFormatter,
         epilog=f"Version: {config.version}"
     )
@@ -40,7 +42,7 @@ def process_arguments(network: Network) -> None:
     arg_parser.add_argument("-obs", "--observations", nargs='+', action='extend',
                         required=True, metavar=('OBS', 'UPDATER'),
                         help="""List of observation files and updater pairs.
-Each observation must be followed by its updater type. 
+Each observation *must* be followed by its updater type. 
 Example: -obs obs1.lp async obs2.lp sync
 Or: -obs obs1.lp async -obs obs2.lp sync""")
     arg_parser.add_argument('-t', '--task', choices=['c', 'r', 'm'], required=True,
@@ -65,8 +67,12 @@ A solution may be sub-optimal w.r.t. number of repair operations.
     c - compact format
     j - json format
     h - human-readable format""")
-    arg_parser.add_argument("--fixed-nodes", nargs='+', action='extend', help="List of nodes ids not to repair"),
-    arg_parser.add_argument("--fixed-edges", nargs='+', action='extend', help="List of edges ids not to repair"),
+    arg_parser.add_argument("--fixed-nodes", nargs='+', action='extend',
+                        help="""List of nodes ids not to repair.
+Example: --fixed-nodes A B C"""),
+    arg_parser.add_argument("--fixed-edges", nargs='+', action='extend',
+                        help="""List of edges ids not to repair.
+Example: --fixed-edges A,B C;D E:F"""),
     arg_parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode")
 
     args = arg_parser.parse_args()
