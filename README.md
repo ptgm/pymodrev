@@ -64,35 +64,39 @@ To run **pyModRev**, use the following command structure:
 $ pymodrev -h
 ```
 ```bash
-usage: pymodrev [-h] -m MODEL -obs OBS [UPDATER ...] -t {c,r,m}
-               [--exhaustive-search] [-s {1,2,3,4}] [-f {c,j,h}] [-d]
-
 options:
   -h, --help            show this help message and exit
-  -m, --model MODEL     Input model file.
+  -m, --model MODEL     Input model file
   -obs, --observations OBS [UPDATER ...]
                         List of observation files and updater pairs.
-                        Each observation must be followed by its updater type. 
-                        Example: -obs obs1.lp async obs2.lp sync obs3.lp steady
+                        Each observation *must* be followed by its updater type. 
+                        Example: -obs obs1.lp async obs2.lp sync
+                        Or: -obs obs1.lp async -obs obs2.lp sync
   -t, --task {c,r,m}    Specify the task to perform (default=r):
-                           c - check for consistency
-                           r - get repairs
-                           m - get repaired models
-  --exhaustive-search   Force exhaustive search of function repair operations (default=false).
+                            c - check for consistency
+                            r - get repairs
+                            m - get repaired models
+  --exhaustive-search   Force exhaustive search of function repair operations (default=false)
   -s, --solutions {1,2,3,4}
-                        Number/Type of solutions presented (default=3).
                         All solutions are optimal w.r.t. number of nodes needing repairs.
-                        A solution may be sub-optimal w.r.t. number of repair operations.
+                        But a solution may be sub-optimal w.r.t. number of repair operations.
                             1 - Show only the first ASP optimal solution, which may be 
                                 sup-optimal in terms of repairs (fastest)
-                            2 - Show first optimal solution found
-                            3 - Show all optimal solutions
-                            4 - Show all optimal solutions, including sub-optimal repairs
+                            2 - Show only the first ASP&repairs optimal solution
+                            3 - Show all optimal solutions (default)
+                            4 - Show all optimal solutions, including sub-optimal repairs (slowest)
+                            
   -f, --format {c,j,h}  Specify output format (default=h):
                             c - compact format
                             j - json format
                             h - human-readable format
-  -d, --debug           Enable debug mode.
+  --fixed-nodes FIXED_NODES [FIXED_NODES ...]
+                        List of nodes ids not to repair.
+                        Example: --fixed-nodes A B C
+  --fixed-edges FIXED_EDGES [FIXED_EDGES ...]
+                        List of edges ids not to repair.
+                        Example: --fixed-edges A,B C;D E:F
+  -d, --debug           Enable debug mode
 ```
 
 
@@ -128,7 +132,7 @@ The tool automatically detects steady-state vs. time-series formats based on the
 Using option `-t c`, `pymodrev` will report the minimal set of nodes that need to be repaired in order to make the model consistent with the given observations.
 
 ```bash
-$ pymodrev -m examples/boolean_cell_cycle/03/model.bnet -obs examples/boolean_cell_cycle/03/steadystate.lp steadystateupdater -t c
+$ pymodrev -m examples/boolean_cell_cycle/03/model.bnet -obs examples/boolean_cell_cycle/03/steady.lp steady -t c
 ```
 ```bash
 This network is inconsistent!
@@ -141,7 +145,7 @@ This network is inconsistent!
 Using option `-t r`, `pymodrev` will report the minimal set of repair operations for the model to be consistent with the given observations.
 
 ```bash
-$ pymodrev -m examples/boolean_cell_cycle/03/model.bnet -obs examples/boolean_cell_cycle/03/steadystate.lp steadystateupdater -t r
+$ pymodrev -m examples/boolean_cell_cycle/03/model.bnet -obs examples/boolean_cell_cycle/03/steady.lp steady -t r
 ```
 ```bash
 ### Found solution with 4 repair operations.
@@ -164,7 +168,7 @@ $ pymodrev -m examples/boolean_cell_cycle/03/model.bnet -obs examples/boolean_ce
 Using option `-t m`, `pymodrev` will apply the repairs to the model and write to disk the repaired models consistent with the given observations.
 
 ```bash
-$ pymodrev -m examples/boolean_cell_cycle/03/model.bnet -obs examples/boolean_cell_cycle/03/steadystate.lp steadystateupdater -t m
+$ pymodrev -m examples/boolean_cell_cycle/03/model.bnet -obs examples/boolean_cell_cycle/03/steady.lp steady -t m
 ```
 Repaired models keep the original name followed by a number, representing the number of minimal alternative repairs.
 For example, one could have:
