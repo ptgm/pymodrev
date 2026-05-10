@@ -53,14 +53,13 @@ Or: -obs obs1.lp async -obs obs2.lp sync""")
     arg_parser.add_argument("--exhaustive-search", action="store_true",
                         help="Force exhaustive search of function repair operations (default=false)")
     arg_parser.add_argument("-s", "--solutions", type=int, choices=[1,2,3,4], default=3,
-                        help="""Number/Type of solutions presented (default=3).
-All solutions are optimal w.r.t. number of nodes needing repairs.
-A solution may be sub-optimal w.r.t. number of repair operations.
+                        help="""All solutions are optimal w.r.t. number of nodes needing repairs.
+But a solution may be sub-optimal w.r.t. number of repair operations.
     1 - Show only the first ASP optimal solution, which may be 
         sup-optimal in terms of repairs (fastest)
-    2 - Show first optimal solution found
-    3 - Show all optimal solutions
-    4 - Show all optimal solutions, including sub-optimal repairs
+    2 - Show only the first ASP&repairs optimal solution
+    3 - Show all optimal solutions (default)
+    4 - Show all optimal solutions, including sub-optimal repairs (slowest)
     """)
     arg_parser.add_argument("-f", "--format", type=str, choices=['c', 'j', 'h'], default='h',
                         help="""Specify output format (default=h):
