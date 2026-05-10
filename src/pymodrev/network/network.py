@@ -60,7 +60,7 @@ class Network:
         return list(set([obs.observation_path for obs in self._observations.values()]))
 
     @property
-    def observations_dictionary(self) -> Dict[str, Observation]:
+    def observations_dictionary(self) -> Dict[str, "Observation"]:
         """Returns the dictionary of [profile, Observation objects]."""
         return self._observations
     
@@ -185,7 +185,7 @@ class Network:
         from pymodrev.parsers.parser_asp import ASPParser
         return ASPParser.to_asp_facts(self)
     
-    def get_observation_updater(self, profile: str) -> Updater:
+    def get_observation_updater(self, profile: str) -> "Updater":
         """
         Gets the observation with a given profile name or expid if it exists
         """
