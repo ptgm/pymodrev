@@ -11,7 +11,8 @@ import logging
 import re
 
 from importlib import util
-from pymodrev.network.network import Network
+from pymodrev.network.model import Model
+from pymodrev.network.observation_set import ObservationSet
 from pymodrev.parsers.parser_factory import get_parser
 from pymodrev.configuration import config
 from pymodrev.repair.engine import model_revision
@@ -25,9 +26,9 @@ from pymodrev.network.exceptions import EdgeNotFoundError
 logger = logging.getLogger(__name__)
 
 
-def process_arguments(network: Network) -> None:
+def process_arguments(network: Model, observation_set: ObservationSet) -> None:
     """
-    Process command-line arguments and configure network accordingly.
+    Process command-line arguments and configure the model and observation set.
     """
     arg_parser = argparse.ArgumentParser(
         description="""pyModRev - Python tool for model revision of Boolean networks.
@@ -123,19 +124,20 @@ Example: --fixed-edges A,B C;D E:F"""),
             obs_parser = get_observation_parser(obs_path)
             observation = obs_parser.read(obs_path, updater)
             
-            network.add_observation(observation)
-            network.add_updater(updater)
-            
+            observation_set.add_observation(observation)
+            observation_set.add_updater(updater)
+
             if updater_name == 'steady':
-                network.has_ss_obs = True
+                observation_set.has_ss_obs = True
             else:
-                network.has_ts_obs = True
+                observation_set.has_ts_obs = True
         except Exception as e:
             arg_parser.error(str(e))
 
 def main():
-    network = Network()
-    process_arguments(network)
+    network = Model()
+    observation_set = ObservationSet()
+    process_arguments(network, observation_set)
     
     # Delegate parsing to the correct reader based on file extension
     try:
@@ -163,13 +165,13 @@ def main():
         sys.exit(1)
 
     # Check consistency
-    f_inconsistencies, optimization = check_consistency(network)
+    f_inconsistencies, optimization = check_consistency(network, observation_set)
     if config.task == 'c' or optimization == 0:
         print_consistency(f_inconsistencies, optimization)
         sys.exit(0)
 
     # Model revision
-    repairs_sols = model_revision(network, f_inconsistencies, optimization)
+    repairs_sols = model_revision(network, observation_set, f_inconsistencies, optimization)
     if config.task == 'm':
         import copy
         import itertools

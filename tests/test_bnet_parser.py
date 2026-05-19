@@ -9,7 +9,7 @@ header/comment/blank handling, and complex nested expressions.
 import os
 import tempfile
 import pytest
-from pymodrev.network.network import Network
+from pymodrev.network.model import Model
 from pymodrev.parsers.parser_bnet import BnetParser
 
 
@@ -20,7 +20,7 @@ def reader():
 
 @pytest.fixture
 def network():
-    return Network()
+    return Model()
 
 
 def _write_bnet(content: str) -> str:

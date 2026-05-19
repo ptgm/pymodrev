@@ -164,5 +164,3 @@ class InconsistentNode:
                 self.n_flip_edges_operations = \
                     repair_set.n_flip_edges_operations
         self.repair_sets.append(repair_set)
-
-Inconsistent_Node = InconsistentNode  # Alias for backward compatibility

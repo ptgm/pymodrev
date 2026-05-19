@@ -11,7 +11,8 @@ from bitarray import bitarray
 from typing import List, Dict, Tuple
 
 from pymodrev.network.inconsistency_solution import InconsistencySolution
-from pymodrev.network.network import Network
+from pymodrev.network.model import Model
+from pymodrev.network.observation_set import ObservationSet
 from pymodrev.network.function import Function
 from pymodrev.updaters.updater import Updater
 from pymodrev.configuration import config, Inconsistencies
@@ -20,21 +21,22 @@ from pymodrev.network.exceptions import PyModRevError
 logger = logging.getLogger(__name__)
 
 
-def check_consistency(network: Network) -> Tuple[List[InconsistencySolution], int]:
+def check_consistency(network: Model, observation_set: ObservationSet) -> Tuple[List[InconsistencySolution], int]:
     """
     Check network consistency using ASP solver or alternative method.
     """
     result = []
     optimization = -2
     if config.check_asp:
-        result, optimization = Updater.check_consistency(network)
+        result, optimization = Updater.check_consistency(network, observation_set)
     else:
         pass
     return result, optimization
 
 
 def n_func_inconsistent_with_label(
-        network: Network,
+        network: Model,
+        observation_set: ObservationSet,
         labeling: InconsistencySolution,
         function: Function) -> int:
     """
@@ -44,7 +46,7 @@ def n_func_inconsistent_with_label(
     """
     result = Inconsistencies.CONSISTENT.value
     for key in labeling.v_label:
-        ret = n_func_inconsistent_with_label_with_profile(network, labeling, function, key)
+        ret = n_func_inconsistent_with_label_with_profile(network, observation_set, labeling, function, key)
         logger.debug(f"Consistency value: {ret} for node {function.node_id} with function: {function.print_function(network=network)}")
         if result == Inconsistencies.CONSISTENT.value:
             result = ret
@@ -56,7 +58,8 @@ def n_func_inconsistent_with_label(
 
 
 def n_func_inconsistent_with_label_with_profile(
-        network: Network,
+        network: Model,
+        observation_set: ObservationSet,
         labeling: InconsistencySolution,
         function: Function,
         profile: str) -> int:
@@ -66,7 +69,7 @@ def n_func_inconsistent_with_label_with_profile(
     consistency status (consistent, single inconsistency, or double
     inconsistency) based on the profile.
     """
-    updater = network.get_observation_updater(profile)
+    updater = observation_set.get_observation_updater(profile)
     if updater is not None:
         return updater.n_func_inconsistent_with_label_with_profile(network, labeling, function, profile)
     else:
@@ -75,20 +78,22 @@ def n_func_inconsistent_with_label_with_profile(
 
 
 def is_func_consistent_with_label(
-        network: Network,
+        network: Model,
+        observation_set: ObservationSet,
         labeling: InconsistencySolution,
         function: Function) -> bool:
     """
     Checks if a function is consistent with a labeling across all profiles.
     """
     return all(
-        is_func_consistent_with_label_with_profile(network, labeling, function, profile)
+        is_func_consistent_with_label_with_profile(network, observation_set, labeling, function, profile)
         for profile in labeling.v_label
     )
 
 
 def is_func_consistent_with_label_with_profile(
-        network: Network,
+        network: Model,
+        observation_set: ObservationSet,
         labeling: InconsistencySolution,
         function: Function,
         profile: str) -> bool:
@@ -98,7 +103,7 @@ def is_func_consistent_with_label_with_profile(
     clauses are satisfied at each time step. It considers both stable states
     and dynamic updates based on the profile's labeling.
     """
-    updater = network.get_observation_updater(profile)
+    updater = observation_set.get_observation_updater(profile)
     if updater is not None:
         return updater.is_func_consistent_with_label_with_profile(network, labeling, function, profile)
     else:
@@ -106,7 +111,7 @@ def is_func_consistent_with_label_with_profile(
         raise PyModRevError(f"Unable to repair due to unknow updater for profile {profile}")
 
 def get_function_value(
-        network: Network,
+        network: Model,
         function: Function,
         input_map: Dict[str, int]):
     """
@@ -136,7 +141,7 @@ def get_function_value(
 
 
 def is_function_in_bottom_half(
-        network: Network,
+        network: Model,
         function: Function) -> bool:
     """
     Determines if a function is in the bottom half based on its regulators.
@@ -152,7 +157,7 @@ def is_function_in_bottom_half(
 
 
 def is_function_in_bottom_half_by_state(
-        network: Network,
+        network: Model,
         function: Function) -> bool:
     """
     Determines if a function is in the bottom half based on its state by

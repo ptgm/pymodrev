@@ -7,14 +7,17 @@ the configuration.
 
 import sys
 from abc import ABC, abstractmethod
-from typing import List, Tuple
+from typing import List, Tuple, TYPE_CHECKING
 import clingo
 import os
-from pymodrev.network.network import Network
+from pymodrev.network.model import Model
 from pymodrev.network.function import Function
 from pymodrev.network.inconsistency_solution import InconsistencySolution
 from pymodrev.configuration import config
 from pymodrev.parsers.asp_utils import asp_unquote
+
+if TYPE_CHECKING:
+    from pymodrev.network.observation_set import ObservationSet
 
 class Updater(ABC):
     """
@@ -44,7 +47,7 @@ class Updater(ABC):
     @staticmethod
     @abstractmethod
     def is_func_consistent_with_label_with_profile(
-            network: Network,
+            network: Model,
             labeling: InconsistencySolution,
             function: Function,
             profile: str) -> bool:
@@ -58,7 +61,7 @@ class Updater(ABC):
     @staticmethod
     @abstractmethod
     def n_func_inconsistent_with_label_with_profile(
-            network: Network,
+            network: Model,
             labeling: InconsistencySolution,
             function: Function,
             profile: str) -> int:
@@ -70,7 +73,7 @@ class Updater(ABC):
         """
 
     @staticmethod
-    def check_consistency(network: Network) -> Tuple[List, int]:
+    def check_consistency(network: Model, observation_set: 'ObservationSet') -> Tuple[List, int]:
         """
         This method loads the necessary rules, including base rules and network
         observation files, and applies consistency checks to the network. It
@@ -89,13 +92,13 @@ class Updater(ABC):
             base_lp = os.path.join(os.path.dirname(__file__), '..', 'asp_rules', 'base.lp')
             ctl.load(base_lp)
 
-            for updater in network.updaters:
+            for updater in observation_set.updaters:
                 updater.apply_update_rules(ctl, updater)
 
-            # Generate ASP facts from the internal Network representation
+            # Generate ASP facts from the internal Model representation
             asp_facts = network.to_asp_facts()
             ctl.add("base", [], asp_facts)
-            for obs in network.observations:
+            for obs in observation_set.observations:
                 ctl.add("base", [], obs.to_asp_facts())
             ctl.ground([('base', [])])
             with ctl.solve(yield_=True) as handle:
@@ -170,7 +173,7 @@ class Updater(ABC):
     @staticmethod
     def is_clause_satisfiable(
             clause,
-            network: Network,
+            network: Model,
             time_map,
             function: Function) -> bool:
         """

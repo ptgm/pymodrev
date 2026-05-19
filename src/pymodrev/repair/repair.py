@@ -6,14 +6,14 @@ import logging
 from typing import List
 
 from pymodrev.network.inconsistency_solution import InconsistencySolution
-from pymodrev.network.network import Network
+from pymodrev.network.model import Model
 from pymodrev.repair.consistency import check_consistency
 from pymodrev.repair.topology import repair_inconsistencies
 from pymodrev.configuration import config
 
 logger = logging.getLogger(__name__)
 
-def apply_repair(network: Network, repair: InconsistencySolution, node_repair_map: dict = None) -> None:
+def apply_repair(network: Model, repair: InconsistencySolution, node_repair_map: dict = None) -> None:
     """
     This function applies a valid repair to a network.
     """

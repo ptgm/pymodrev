@@ -2,7 +2,7 @@ import logging
 from typing import List, Dict, Tuple, Set, Optional
 from itertools import combinations
 
-from pymodrev.network.network import Network
+from pymodrev.network.model import Model
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +105,7 @@ def _tokenise(expr: str) -> List[Tuple[str, str]]:
         elif ch == ')':
             tokens.append((_TOKEN_RPAREN, ')'))
             i += 1
-        elif ch == '!':
+        elif ch in ('!', '~'):
             tokens.append((_TOKEN_NOT, '!'))
             i += 1
         elif ch == '&':
@@ -440,11 +440,11 @@ def _determine_monotone_signs(
 
 
 # ---------------------------------------------------------------------------
-# Network population
+# Model population
 # ---------------------------------------------------------------------------
 
 def _populate_network(
-    network: Network, target_node, target: str,
+    network: Model, target_node, target: str,
     implicants: List[Implicant], variables: List[str],
     var_signs: Dict[str, int]
 ) -> None:
@@ -465,7 +465,7 @@ def _populate_network(
 
 
 def add_positive_autoregulation(
-    network: Network, target_node, target: str
+    network: Model, target_node, target: str
 ) -> None:
     """
     Add a positive self-loop for a constant function: the target node
@@ -481,14 +481,14 @@ def add_positive_autoregulation(
 # ---------------------------------------------------------------------------
 
 def parse_and_minimise_expression(
-    network: Network, target_node, target: str,
+    network: Model, target_node, target: str,
     expr: str, location_info: str = ""
 ) -> int:
     """
     Full pipeline: parse → truth table → QMC → monotone → populate.
     
     Args:
-        network: the Network instance
+        network: the Model instance
         target_node: the Node instance representing the target
         target: name of the target
         expr: boolean expression string

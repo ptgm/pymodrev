@@ -7,7 +7,7 @@ import logging
 import clingo
 import os
 from pymodrev.updaters.updater import Updater
-from pymodrev.network.network import Network
+from pymodrev.network.model import Model
 from pymodrev.network.function import Function
 from pymodrev.network.inconsistency_solution import InconsistencySolution
 from pymodrev.configuration import Inconsistencies
@@ -42,7 +42,7 @@ class SteadyUpdater(Updater):
 
     @staticmethod
     def is_func_consistent_with_label_with_profile(
-            network: Network,
+            network: Model,
             labeling: InconsistencySolution,
             function: Function,
             profile: str) -> bool:
@@ -80,7 +80,7 @@ class SteadyUpdater(Updater):
 
     @staticmethod
     def n_func_inconsistent_with_label_with_profile(
-            network: Network,
+            network: Model,
             labeling: InconsistencySolution,
             function: Function,
             profile: str) -> int:

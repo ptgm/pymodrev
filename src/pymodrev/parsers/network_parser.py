@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from pymodrev.network.network import Network
+from pymodrev.network.model import Model
 
 class NetworkParser(ABC):
     """
@@ -7,12 +7,12 @@ class NetworkParser(ABC):
     Subclasses must implement 'read' and 'write' for specific file formats.
     """
     @abstractmethod
-    def read(self, network: Network, filepath: str) -> int:
+    def read(self, network: Model, filepath: str) -> int:
         """
-        Populate the provided Network object from the given filepath.
+        Populate the provided Model object from the given filepath.
         
         Args:
-            network: The Network object to populate.
+            network: The Model object to populate.
             filepath: The path to the model file.
             
         Returns:
@@ -21,12 +21,12 @@ class NetworkParser(ABC):
         pass
 
     @abstractmethod
-    def write(self, network: Network, filename: str) -> None:
+    def write(self, network: Model, filename: str) -> None:
         """
-        Write the provided Network object to a file.
+        Write the provided Model object to a file.
         
         Args:
-            network: The Network object to write.
+            network: The Model object to write.
             filename: The path to the output file.
         """
         pass

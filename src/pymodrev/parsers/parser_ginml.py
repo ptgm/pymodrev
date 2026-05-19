@@ -2,7 +2,7 @@ import os
 import zipfile
 import xml.etree.ElementTree as ET
 import logging
-from pymodrev.network.network import Network
+from pymodrev.network.model import Model
 from pymodrev.parsers.network_parser import NetworkParser
 from pymodrev.parsers.boolean_expression import (
     parse_and_minimise_expression,
@@ -28,7 +28,7 @@ class GINMLParser(NetworkParser):
         self._ginml_filename_in_zip = None
         self._doctype = '<!DOCTYPE gxl SYSTEM "http://ginsim.org/GINML_2_2.dtd">'
 
-    def read(self, network: Network, filepath: str) -> int:
+    def read(self, network: Model, filepath: str) -> int:
         """
         Main entry point for reading a local .ginml or .zginml file.
         Returns 1 on success, -1 on soft warnings like unsupported parameters, 
@@ -135,10 +135,10 @@ class GINMLParser(NetworkParser):
 
         return result
 
-    def _build_ginml_xml(self, network: Network) -> str:
+    def _build_ginml_xml(self, network: Model) -> str:
         """
         Build the GINML XML string by updating the original XML structure 
-        based on the modified Network object.
+        based on the modified Model object.
         """
         if not hasattr(self, '_original_xml_content') or self._original_xml_content is None:
             return self._build_ginml_xml_scratch(network)
@@ -221,9 +221,9 @@ class GINMLParser(NetworkParser):
         lines.append(xml_str)
         return "\n".join(lines)
 
-    def _build_ginml_xml_scratch(self, network: Network) -> str:
+    def _build_ginml_xml_scratch(self, network: Model) -> str:
         """
-        Build the GINML XML string from a Network object from scratch.
+        Build the GINML XML string from a Model object from scratch.
         
         Generates XML matching the GINsim regulatory graph format with:
         - <gxl> root element
@@ -284,7 +284,7 @@ class GINMLParser(NetworkParser):
         return "\n".join(lines)
 
     @staticmethod
-    def _function_to_expression(network: Network, node_id: str, func) -> str:
+    def _function_to_expression(network: Model, node_id: str, func) -> str:
         """
         Convert a function's regulators_by_term into a boolean expression string.
         Terms are joined with ' | ', regulators within a term with ' & '.
@@ -313,9 +313,9 @@ class GINMLParser(NetworkParser):
         s = s.replace('"', "&quot;")
         return s
 
-    def write(self, network: Network, filename: str) -> None:
+    def write(self, network: Model, filename: str) -> None:
         """
-        Write the provided Network object to a .ginml or .zginml file.
+        Write the provided Model object to a .ginml or .zginml file.
         
         - If filename ends with .ginml: writes a standalone GINML XML file
         - If filename ends with .zginml: writes a zip containing

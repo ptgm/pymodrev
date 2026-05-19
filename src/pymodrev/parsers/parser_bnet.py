@@ -5,7 +5,7 @@ boolean_expression module.
 
 import logging
 
-from pymodrev.network.network import Network
+from pymodrev.network.model import Model
 from pymodrev.parsers.network_parser import NetworkParser
 from pymodrev.parsers.boolean_expression import (
     parse_and_minimise_expression,
@@ -24,9 +24,9 @@ class BnetParser(NetworkParser):
 
     HEADER_TOKENS = {'targets', 'factors'}
 
-    def read(self, network: Network, filepath: str) -> int:
+    def read(self, network: Model, filepath: str) -> int:
         """
-        Parse a .bnet file and populate the provided Network object.
+        Parse a .bnet file and populate the provided Model object.
 
         Returns:
             1 on success, -1 on warnings, -2 on fatal error.
@@ -109,9 +109,9 @@ class BnetParser(NetworkParser):
         parts = [p.strip().lower() for p in line.split(',')]
         return set(parts) == BnetParser.HEADER_TOKENS
 
-    def write(self, network: Network, filename: str) -> None:
+    def write(self, network: Model, filename: str) -> None:
         """
-        Write the provided Network object to a .bnet file.
+        Write the provided Model object to a .bnet file.
         """
         try:
             with open(filename, 'w', encoding='utf-8') as f:

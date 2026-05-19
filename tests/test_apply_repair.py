@@ -10,7 +10,7 @@ Tests cover each type of repair operation individually:
 """
 
 import pytest
-from pymodrev.network.network import Network
+from pymodrev.network.model import Model
 from pymodrev.network.node import Node
 from pymodrev.network.edge import Edge
 from pymodrev.network.function import Function
@@ -28,7 +28,7 @@ from pymodrev.repair.repair import apply_repair
 def base_network():
     """Create a simple network: A -> B -> C (all positive edges).
     B has function (A), C has function (B)."""
-    net = Network()
+    net = Model()
     A = net.add_node("A")
     B = net.add_node("B")
     C = net.add_node("C")
@@ -298,7 +298,7 @@ class TestCombinedRepairs:
 
     def test_no_repair_sets_is_noop(self):
         """An empty InconsistencySolution should not change the network."""
-        net = Network()
+        net = Model()
         A = net.add_node("A")
         B = net.add_node("B")
         net.add_edge(A, B, 1)
@@ -312,7 +312,7 @@ class TestCombinedRepairs:
 
     def test_empty_repair_set_is_noop(self):
         """An inconsistent node with no repair sets should not modify anything."""
-        net = Network()
+        net = Model()
         A = net.add_node("A")
         B = net.add_node("B")
         net.add_edge(A, B, 1)

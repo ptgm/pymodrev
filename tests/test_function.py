@@ -67,8 +67,8 @@ def test_function_string_rep():
     assert f.print_function() == "(A && B) || (C)"
 
     # 2. With network (sign-aware)
-    from pymodrev.network.network import Network
-    net = Network()
+    from pymodrev.network.model import Model
+    net = Model()
     A = net.add_node("A")
     B = net.add_node("B")
     C = net.add_node("C")

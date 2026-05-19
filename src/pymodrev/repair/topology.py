@@ -11,7 +11,8 @@ from typing import List
 from pymodrev.network.inconsistency_solution import InconsistencySolution
 from pymodrev.network.inconsistent_node import InconsistentNode
 from pymodrev.network.repair_set import RepairSet
-from pymodrev.network.network import Network
+from pymodrev.network.model import Model
+from pymodrev.network.observation_set import ObservationSet
 from pymodrev.network.function import Function
 from pymodrev.network.edge import Edge
 from pymodrev.repair.consistency import n_func_inconsistent_with_label
@@ -25,7 +26,8 @@ logger = logging.getLogger(__name__)
 
 
 def repair_inconsistencies(
-        network: Network,
+        network: Model,
+        observation_set: ObservationSet,
         inconsistency: InconsistencySolution) -> None:
     """
     This function receives an inconsistent model with a set of nodes to be
@@ -33,7 +35,7 @@ def repair_inconsistencies(
     returning the set of repair operations to be applied.
     """
     for node_id, node in inconsistency.inconsistent_nodes.items():
-        repair_node_consistency(network, inconsistency, node)
+        repair_node_consistency(network, observation_set, inconsistency, node)
         if inconsistency.has_impossibility:
             logger.debug(f"#Found a node with impossibility - {node_id}")
             return
@@ -41,7 +43,8 @@ def repair_inconsistencies(
 
 
 def repair_node_consistency(
-        network: Network,
+        network: Model,
+        observation_set: ObservationSet,
         inconsistency: InconsistencySolution,
         inconsistent_node: InconsistentNode) -> None:
     """
@@ -133,7 +136,7 @@ def repair_node_consistency(
 
                     # Test with edge flips starting with 0 edge flips
                     is_sol = repair_node_consistency_flipping_edges(
-                        network, inconsistency, inconsistent_node,
+                        network, observation_set, inconsistency, inconsistent_node,
                         add_combination, remove_combination)
 
                     # Add and remove edges for the original network
@@ -162,7 +165,8 @@ def repair_node_consistency(
 
 
 def repair_node_consistency_flipping_edges(
-        network: Network,
+        network: Model,
+        observation_set: ObservationSet,
         inconsistency: InconsistencySolution,
         inconsistent_node: InconsistentNode,
         added_edges: List[Edge],
@@ -199,7 +203,7 @@ def repair_node_consistency_flipping_edges(
             for edge in edge_set:
                 edge.flip_sign()
                 logger.debug(f"Flip edge from {edge.start_node.identifier}")
-            is_sol = repair_node_consistency_functions(network, inconsistency,
+            is_sol = repair_node_consistency_functions(network, observation_set, inconsistency,
                                                        inconsistent_node,
                                                        edge_set, added_edges,
                                                        removed_edges)
@@ -242,7 +246,8 @@ def get_edges_combinations(
 
 
 def repair_node_consistency_functions(
-        network: Network,
+        network: Model,
+        observation_set: ObservationSet,
         inconsistency: InconsistencySolution,
         inconsistent_node: InconsistentNode,
         flipped_edges: List[Edge],
@@ -260,7 +265,7 @@ def repair_node_consistency_functions(
     # became consistent
     if flipped_edges or added_edges or removed_edges:
         repair_type = n_func_inconsistent_with_label(
-            network, inconsistency,
+            network, observation_set, inconsistency,
             network.get_node(inconsistent_node.identifier).function)
         if repair_type == Inconsistencies.CONSISTENT.value:
             logger.debug("Node consistent with only topological changes")
@@ -315,7 +320,7 @@ def repair_node_consistency_functions(
         logger.debug(f"Searching for non-comparable functions for node {inconsistent_node.identifier}")
 
         # Case of double inconsistency
-        sol_found = search_non_comparable_functions(network, inconsistency,
+        sol_found = search_non_comparable_functions(network, observation_set, inconsistency,
                                                     inconsistent_node,
                                                     flipped_edges, added_edges,
                                                     removed_edges)
@@ -327,7 +332,7 @@ def repair_node_consistency_functions(
 
         # Case of single inconsistency
         sol_found = search_comparable_functions(
-            network, inconsistency, inconsistent_node, flipped_edges,
+            network, observation_set, inconsistency, inconsistent_node, flipped_edges,
             added_edges, removed_edges,
             repair_type == Inconsistencies.SINGLE_INC_GEN.value)
         logger.debug(f"End searching for comparable functions for node {inconsistent_node.identifier}")

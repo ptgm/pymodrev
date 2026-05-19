@@ -1,5 +1,5 @@
 import logging
-from pymodrev.network.network import Network
+from pymodrev.network.model import Model
 from pymodrev.parsers.network_parser import NetworkParser
 from pymodrev.parsers.asp_utils import asp_quote
 
@@ -19,9 +19,9 @@ class ASPParser(NetworkParser):
             return False
         return True
 
-    def read(self, network: Network, filepath: str) -> int:
+    def read(self, network: Model, filepath: str) -> int:
         """
-        Parses an ASP network file and populates the provided Network object.
+        Parses an ASP network file and populates the provided Model object.
         """
         result = 1
         try:
@@ -183,7 +183,7 @@ class ASPParser(NetworkParser):
         return result
 
     @staticmethod
-    def to_asp_facts(network: Network) -> str:
+    def to_asp_facts(network: Model) -> str:
         """
         Encodes the network as ASP facts compatible with the clingo rules.
 
@@ -226,9 +226,9 @@ class ASPParser(NetworkParser):
 
         return "\n".join(facts) + "\n" if facts else ""
 
-    def write(self, network: Network, filename: str) -> None:
+    def write(self, network: Model, filename: str) -> None:
         """
-        Write the provided Network object to an ASP (.lp) file.
+        Write the provided Model object to an ASP (.lp) file.
         """
         try:
             with open(filename, 'w', encoding='utf-8') as f:

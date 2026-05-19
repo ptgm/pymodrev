@@ -11,7 +11,8 @@ from typing import List
 from pymodrev.network.inconsistency_solution import InconsistencySolution
 from pymodrev.network.inconsistent_node import InconsistentNode
 from pymodrev.network.repair_set import RepairSet
-from pymodrev.network.network import Network
+from pymodrev.network.model import Model
+from pymodrev.network.observation_set import ObservationSet
 from pymodrev.network.function import Function
 from pymodrev.network.edge import Edge
 from pymodrev.repair.consistency import (
@@ -25,7 +26,8 @@ logger = logging.getLogger(__name__)
 
 
 def search_comparable_functions(
-        network: Network,
+        network: Model,
+        observation_set: ObservationSet,
         inconsistency: InconsistencySolution,
         inconsistent_node: InconsistentNode,
         flipped_edges: List[Edge],
@@ -61,7 +63,7 @@ def search_comparable_functions(
         if function_repaired and candidate.distance_from_original > \
                 repaired_function_level:
             continue
-        if is_func_consistent_with_label(network, inconsistency, candidate):
+        if is_func_consistent_with_label(network, observation_set, inconsistency, candidate):
             candidate_sol = True
             repair_set = RepairSet()
             repair_set.add_repaired_function(candidate)
@@ -89,7 +91,7 @@ def search_comparable_functions(
         if not candidate_sol:
             del candidate
     if not sol_found and config.force_optimum:
-        return search_non_comparable_functions(network, inconsistency,
+        return search_non_comparable_functions(network, observation_set, inconsistency,
                                                inconsistent_node,
                                                flipped_edges, added_edges,
                                                removed_edges)
@@ -97,7 +99,8 @@ def search_comparable_functions(
 
 
 def search_non_comparable_functions(
-        network: Network,
+        network: Model,
+        observation_set: ObservationSet,
         inconsistency: InconsistencySolution,
         inconsistent_node: InconsistentNode,
         flipped_edges: List[Edge],
@@ -156,7 +159,7 @@ def search_non_comparable_functions(
         if candidate not in consistent_functions:
             continue
 
-        inc_type = n_func_inconsistent_with_label(network, inconsistency,
+        inc_type = n_func_inconsistent_with_label(network, observation_set, inconsistency,
                                                   candidate)
         if inc_type == Inconsistencies.CONSISTENT.value:
             is_consistent = True

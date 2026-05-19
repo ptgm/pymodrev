@@ -9,7 +9,8 @@ import logging
 from typing import List
 
 from pymodrev.network.inconsistency_solution import InconsistencySolution
-from pymodrev.network.network import Network
+from pymodrev.network.model import Model
+from pymodrev.network.observation_set import ObservationSet
 from pymodrev.repair.consistency import check_consistency
 from pymodrev.repair.topology import repair_inconsistencies
 from pymodrev.configuration import config
@@ -18,7 +19,8 @@ logger = logging.getLogger(__name__)
 
 
 def model_revision(
-    network: Network,
+    network: Model,
+    observation_set: ObservationSet,
     f_inconsistencies: List[InconsistencySolution],
     optimization: int) -> None:
     """
@@ -39,7 +41,7 @@ def model_revision(
     best_solution = None
     solutions2apply = []
     for inconsistency in f_inconsistencies:
-        repair_inconsistencies(network, inconsistency)
+        repair_inconsistencies(network, observation_set, inconsistency)
 
         # Check for valid solution
         if not inconsistency.has_impossibility:
