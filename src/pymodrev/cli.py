@@ -10,7 +10,6 @@ import os
 import logging
 import re
 
-from importlib import util
 from pymodrev.network.model import Model
 from pymodrev.network.observation_set import ObservationSet
 from pymodrev.parsers.parser_factory import get_parser
@@ -21,6 +20,7 @@ from pymodrev.repair.engine import print_consistency
 from pymodrev.repair.repair import apply_repair
 from pymodrev.parsers.parser_observation import get_observation_parser
 from pymodrev.network.exceptions import EdgeNotFoundError
+from pymodrev.updaters.factory import get_updater, is_valid_updater_type
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -95,32 +95,15 @@ Example: --fixed-edges A,B C;D E:F"""),
     if len(obs_args) % 2 != 0:
         arg_parser.error("Expected an even number of arguments for -obs (pairs of obs_file and updater_name)")
 
-    # Load updaters dynamically from updaters/ directory
-    updaters = {}
-    updater_dir = os.path.join(os.path.dirname(__file__), "updaters")
-    for filename in os.listdir(updater_dir):
-        if filename.endswith(".py") and filename not in ("__init__.py", "updater.py", "time_series_updater.py"):
-            module_name = os.path.splitext(filename)[0]
-            class_name = "".join(word.capitalize() for word in module_name.split("_"))
-            file_path = os.path.join(updater_dir, filename)
-            # Load module dynamically
-            spec = util.spec_from_file_location(module_name, file_path)
-            module = util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            # Get class from module
-            updater_class = getattr(module, class_name)()
-            # Add class to updaters dictionary
-            updaters[module_name.replace('_updater','')] = updater_class
-
     for i in range(0, len(obs_args), 2):
         obs_path = obs_args[i]
         updater_name = obs_args[i+1]
 
         try:
-            if updater_name not in updaters:
+            if not is_valid_updater_type(updater_name):
                 raise Exception(f"Updater '{updater_name}' not found in updaters directory")
-            
-            updater = updaters[updater_name]
+
+            updater = get_updater(updater_name)
             obs_parser = get_observation_parser(obs_path)
             observation = obs_parser.read(obs_path, updater)
             
