@@ -28,26 +28,6 @@ class Inconsistencies(Enum):
         return f"{self.name} ({self.value}): {self.description}"
 
 
-class UpdateType(Enum):
-    """
-    Enumeration representing the types of update strategies that can be used.
-
-    Attributes:
-        ASYNC (int): Asynchronous update strategy.
-        SYNC (int): Synchronous update strategy.
-        MASYNC (int): Mixed asynchronous update strategy.
-    """
-    ASYNC = (0, "Asynchronous update strategy")
-    SYNC = (1, "Synchronous update strategy")
-    MASYNC = (2, "Mixed asynchronous update strategy")
-
-    def __init__(self, int_val, description):
-        self._value_ = int_val
-        self.description = description
-    def __str__(self):
-        return f"{self.name} ({self.value}): {self.description}"
-
-
 import importlib.metadata
 
 try:
@@ -62,7 +42,6 @@ class Configuration:
     version: str = _package_version
     task: str = 'r' # default is show the repairs
     format: str = 'h' # default is human-readable format
-    update: UpdateType = UpdateType.ASYNC  # Setting the update type to ASYNC
     debug: bool = False
     check_asp: bool = True  # Use ASP consistency check program
     function_asp: bool = True # Use ASP function program
