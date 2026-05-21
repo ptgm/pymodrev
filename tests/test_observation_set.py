@@ -11,7 +11,8 @@ def observation_set():
 
 
 def test_add_observation(observation_set):
-    obs = Observation('obs1.lp', None)
+    updater = SteadyUpdater()
+    obs = Observation(updater)
     obs.experiments.add('exp1')
     observation_set.add_observation(obs)
     assert obs in observation_set.observations
@@ -19,14 +20,15 @@ def test_add_observation(observation_set):
 
 def test_get_observation_updater(observation_set):
     updater = SteadyUpdater()
-    obs = Observation('obs1.lp', updater)
+    obs = Observation(updater)
     obs.experiments.add('exp1')
     observation_set.add_observation(obs)
     assert updater == observation_set.get_observation_updater('exp1')
 
 
 def test_duplicated_observation(observation_set):
-    obs = Observation('obs1.lp', None)
+    updater = SteadyUpdater()
+    obs = Observation(updater)
     obs.experiments.add('exp1')
     observation_set.add_observation(obs)
     with pytest.raises(ParseError):

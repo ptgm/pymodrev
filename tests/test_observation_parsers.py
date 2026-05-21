@@ -1,4 +1,5 @@
 import os
+from pymodrev.updaters.steady_updater import SteadyUpdater
 import pytest
 from pymodrev.network.observation import Observation
 from pymodrev.parsers.parser_observation import get_observation_parser, LPObservationParser, CSVObservationParser
@@ -117,7 +118,8 @@ def test_excel_parser_xls(tmp_path):
 
 def test_observation_to_asp_facts():
     from pymodrev.network.observation import Observation
-    obs = Observation("path", None)
+    updater = SteadyUpdater()
+    obs = Observation(updater)
     obs.add_data("p1", None, "node1", 0)
     obs.add_data("p1", 0, "node1", 1) # Mixed just for test
     

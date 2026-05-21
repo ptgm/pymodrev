@@ -1,8 +1,8 @@
 """
 This module provides the Observation class for pyModRev. The Observation class
-encapsulates information about an observation, including the file path of the
-observation data and the updater specified via the command line. It also
-performs a basic check to ensure the provided observation file exists.
+encapsulates information about an observation, including the updater specified
+via the command line. It also performs a basic check to ensure the provided 
+observation file exists.
 """
 
 import os
@@ -15,16 +15,15 @@ from typing import List, Tuple, Set, Optional
 
 class Observation:
     """
-    Represents an observation for the network model, including the file path
-    of the observation data and the updater (as specified via the command line).
-    It stores the internal structure of observations and can generate ASP facts.
+    Represents an observation for the network model, including the updater (as 
+    specified via the command line). It stores the internal structure of 
+    observations and can generate ASP facts.
     """
 
-    def __init__(self, observation_path: str, updater: Updater):
+    def __init__(self, updater: Updater):
         """
         Initializes an Observation instance.
         """
-        self.observation_path = observation_path
         self.updater = updater
         self.experiments: Set[str] = set()
         # Data format: (experiment_id, time, node_id, value)
@@ -57,8 +56,7 @@ class Observation:
         return "\n".join(facts) + "\n"
 
     def __str__(self):
-        return f"Observation(path='{self.observation_path}', updater='{self.updater}', n_points={len(self.data)})"
+        return f"Observation(updater='{self.updater}', n_points={len(self.data)})"
 
     def __repr__(self):
-        return (f"Observation(observation_path={self.observation_path!r}, "
-                f"updater={self.updater!r}, n_points={len(self.data)})")
+        return (f"Observation(updater={self.updater!r}, n_points={len(self.data)})")

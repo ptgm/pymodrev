@@ -20,7 +20,7 @@ class LPObservationParser(ObservationParser):
     Parses observations in Answer Set Programming (.lp) format.
     """
     def read(self, filepath: str, updater) -> Observation:
-        obs = Observation(filepath, updater)
+        obs = Observation(updater)
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
                 for line in f:
@@ -48,7 +48,7 @@ class CSVObservationParser(ObservationParser):
     Supports both steady-state and time-series patterns.
     """
     def read(self, filepath: str, updater) -> Observation:
-        obs = Observation(filepath, updater)
+        obs = Observation(updater)
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
                 reader = csv.reader(f)
@@ -101,7 +101,7 @@ class ExcelObservationParser(ObservationParser):
     Supports both steady-state and time-series patterns.
     """
     def read(self, filepath: str, updater) -> Observation:
-        obs = Observation(filepath, updater)
+        obs = Observation(updater)
         ext = os.path.splitext(filepath)[1].lower()
         
         try:

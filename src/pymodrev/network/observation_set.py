@@ -29,16 +29,6 @@ class ObservationSet:
         return list(set(self._observations.values()))
 
     @property
-    def observation_files(self) -> List[str]:
-        """Returns the list of observation file paths."""
-        return list(set([obs.observation_path for obs in self._observations.values()]))
-
-    @property
-    def observation_files_with_updater(self) -> List:
-        """Returns the list of (observation_path, updater) pairs."""
-        return list(set([(obs.observation_path, obs.updater) for obs in self._observations.values()]))
-
-    @property
     def updaters(self) -> Set:
         """Returns the set of updater objects."""
         return self._updaters
