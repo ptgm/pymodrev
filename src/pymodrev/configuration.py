@@ -75,6 +75,8 @@ class Configuration:
     force_optimum: bool = False
     show_all_functions: bool = True # Show all function repairs for a given node
     check_consistency: bool = False  # Just check the consistency of the model and return
+    fixed_nodes: list[str] = []  # List of node ids not to repair
+    fixed_edges: list[str] = []  # List of edge ids not to repair
 
     def __getitem__(self, key):
         return getattr(self, key)

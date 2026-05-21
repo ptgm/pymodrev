@@ -81,7 +81,7 @@ Example: --fixed-edges A,B C;D E:F"""),
     network.input_file_network = args.model
     config.task = args.task
     config.force_optimum = args.exhaustive_search
-    config.sol = args.solutions
+    config.solutions = args.solutions
     config.format = args.format
     config.fixed_nodes = args.fixed_nodes
     config.fixed_edges = args.fixed_edges

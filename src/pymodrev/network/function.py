@@ -227,11 +227,11 @@ class Function:
         """
         return self.pfh_level_cmp_list(other)
 
-    def get_level(self) -> int:
+    def get_level(self) -> List[int]:
         """
         Returns the hierarchical level of this function.
         """
-        return self.pfh_get_level()
+        return self.pfh_function.get_level()
 
     def get_replacements(self, generalize: bool) -> List:
         """
@@ -264,7 +264,7 @@ class Function:
             initialised_clauses.add(initialised_clause)
         self.pfh_init(n_vars, initialised_clauses)
 
-    def create_bitarrays(self) -> Set:
+    def create_bitarrays(self) -> List[bitarray]:
         """
         Creates bitarray representations of the function's clauses.
         """
@@ -376,12 +376,6 @@ class Function:
         Evaluates the PFH function using given sign and value bitarrays.
         """
         return self.pfh_function.evaluate(signs, values)
-
-    def pfh_get_level(self) -> List[int]:
-        """
-        Gets the level representation of the PFH function.
-        """
-        return self.pfh_function.get_level()
 
     def pfh_level_cmp(self, other: PFHFunction) -> int:
         """

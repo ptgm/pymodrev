@@ -13,7 +13,7 @@ from pymodrev.configuration import config
 
 logger = logging.getLogger(__name__)
 
-def apply_repair(network: Model, repair: InconsistencySolution, node_repair_map: dict = None) -> None:
+def apply_repair(network: Model, repair: InconsistencySolution, node_repair_map: dict = {}) -> None:
     """
     This function applies a valid repair to a network.
     """

@@ -21,7 +21,7 @@ class Model:
         """
         Initializes an empty model with no nodes or edges.
         """
-        self._nodes = {}  # {'node_id': node, ...}
+        self._nodes: Dict[str, Node] = {}  # {'node_id': node, ...}
         self._graph = {}  # {'node_id': [edge_1, edge_2, ...], ...}
         self._regulators = {}  # Reverse of graph: {'node_id': ['reg_id', ...], ...}
         self._input_file_network = ''
@@ -50,7 +50,7 @@ class Model:
     def input_file_network(self, value: str):
         self._input_file_network = value
 
-    def get_node(self, node_id: str) -> Node:
+    def get_node(self, node_id: str) -> Node | None:
         """
         Retrieves a node from the model by its identifier.
         """
@@ -84,7 +84,7 @@ class Model:
         Adds a new edge between two nodes with the specified sign.
         """
         try:
-            return self.get_edge(start_node.identifier, end_node.identifier)
+            self.get_edge(start_node.identifier, end_node.identifier)
         except EdgeNotFoundError:
             edge = Edge(start_node, end_node, sign)
             self.graph[edge.start_node.identifier].append(edge)

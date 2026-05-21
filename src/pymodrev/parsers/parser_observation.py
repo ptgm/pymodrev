@@ -109,7 +109,7 @@ class ExcelObservationParser(ObservationParser):
             if ext == '.xlsx':
                 import openpyxl
                 wb = openpyxl.load_workbook(filepath, data_only=True)
-                ws = wb.active
+                ws = wb[wb.sheetnames[0]] # Read the first sheet
                 for row in ws.iter_rows(values_only=True):
                     rows.append(list(row))
             elif ext == '.xls':

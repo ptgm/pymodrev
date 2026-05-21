@@ -22,7 +22,7 @@ def model_revision(
     network: Model,
     observation_set: ObservationSet,
     f_inconsistencies: List[InconsistencySolution],
-    optimization: int) -> None:
+    optimization: int) -> List[InconsistencySolution]:
     """
     Analyze and revise a given network model for consistency.
     Procedure:
@@ -32,7 +32,7 @@ def model_revision(
     """
     if optimization < 0:
         logger.error("Points of repair not found, probably due to fixed edges/nodes or node data expecting different outputs for the same input.")
-        return
+        return []
 
     logger.debug(f"Found {len(f_inconsistencies)} solution(s) with {len(f_inconsistencies[0].inconsistent_nodes)} inconsistent node(s)")
 
@@ -49,22 +49,22 @@ def model_revision(
                     or inconsistency.compare_repairs(best_solution) > 0:
                 best_solution = inconsistency
                 logger.debug(f"Found a solution with {best_solution.n_topology_changes} topology changes")
-                if best_solution.n_topology_changes == 0 and config.sol <= 2:
+                if best_solution.n_topology_changes == 0 and config.solutions <= 2:
                     break
         else:
             logger.debug("Reached an impossibility")
 
     if best_solution is None:
         logger.info("It was not possible to repair the model.")
-        return
+        return []
     
-    if config.sol > 2:
+    if config.solutions > 2:
         for inconsistency in f_inconsistencies:
             logger.debug(f"Checking for printing solution with {inconsistency.n_topology_changes} topology changes")
             if not inconsistency.has_impossibility \
                     and (inconsistency.compare_repairs(best_solution) >= 0
-                         or config.sol == 4):
-                if config.sol == 4 and config.task != 'm' \
+                         or config.solutions == 4):
+                if config.solutions == 4 and config.task != 'm' \
                         and inconsistency.compare_repairs(best_solution) < 0:
                     if config.format != 'h':
                         print("+", end="")
@@ -76,7 +76,7 @@ def model_revision(
                     solutions2apply.append(inconsistency)
     else:
         if config.task == 'r':
-            if config.sol == 1:
+            if config.solutions == 1:
                 if config.format != 'h':
                     print("+", end="")
                 else:
