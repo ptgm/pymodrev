@@ -10,18 +10,6 @@ def observation_set():
     return ObservationSet()
 
 
-def test_observation_set_flags(observation_set):
-    observation_set.has_ss_obs = True
-    assert observation_set.has_ss_obs
-    observation_set.has_ss_obs = False
-    assert not observation_set.has_ss_obs
-
-    observation_set.has_ts_obs = True
-    assert observation_set.has_ts_obs
-    observation_set.has_ts_obs = False
-    assert not observation_set.has_ts_obs
-
-
 def test_add_observation(observation_set):
     obs = Observation('obs1.lp', None)
     obs.experiments.add('exp1')

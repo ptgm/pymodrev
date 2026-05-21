@@ -19,7 +19,7 @@ class NotsteadyUpdater(AsyncUpdater):
         This method to return the update type
         (e.g., sync, async, etc.).
         """
-        return "not_ss"
+        return "notsteady"
 
 
     @staticmethod
@@ -29,6 +29,6 @@ class NotsteadyUpdater(AsyncUpdater):
         object (ctl) and applies consistency constraints based on the provided
         configuration.
         """
-        avoid_ss_lp = os.path.join(os.path.dirname(__file__), '..', 'asp_rules', 'avoid_steady_state.lp')
+        avoid_ss_lp = os.path.join(os.path.dirname(__file__), '..', 'asp_rules', 'notsteady_state.lp')
         ctl.load(avoid_ss_lp)
 

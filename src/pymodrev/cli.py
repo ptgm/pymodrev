@@ -106,14 +106,7 @@ Example: --fixed-edges A,B C;D E:F"""),
             updater = get_updater(updater_name)
             obs_parser = get_observation_parser(obs_path)
             observation = obs_parser.read(obs_path, updater)
-            
             observation_set.add_observation(observation)
-            observation_set.add_updater(updater)
-
-            if updater_name == 'steady':
-                observation_set.has_ss_obs = True
-            else:
-                observation_set.has_ts_obs = True
         except Exception as e:
             arg_parser.error(str(e))
 

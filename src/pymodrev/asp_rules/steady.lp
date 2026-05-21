@@ -1,5 +1,5 @@
 %guarantee of stable state observation
-%ss(P) :- exp(P), not time(P,_), not exp(P,not_ss).
+%ss(P) :- exp(P), not time(P,_), not exp(P,notsteady).
 %the above was replaced by exp(P,steady)
 
 %generate
