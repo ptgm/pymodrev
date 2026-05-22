@@ -1,15 +1,14 @@
 """Public package exports for pyModRev."""
 
 from pymodrev.api import (
-    add_obs,
-    apply_repair,
     clear_obs,
-    get_observation_set,
-    get_repairs,
-    is_consistent,
-    load_model,
+    add_obs,
     model_from_dict,
-    save_model,
+    model_from_file,
+    is_consistent,
+    get_repairs,
+    apply_repairs,
+    model_to_file,
 )
 from pymodrev.network.edge import Edge
 from pymodrev.network.function import Function
@@ -19,19 +18,19 @@ from pymodrev.network.observation import Observation
 from pymodrev.network.observation_set import ObservationSet
 
 __all__ = [
-    "add_obs",
-    "apply_repair",
     "clear_obs",
+    "add_obs",
+    "model_from_dict",
+    "model_from_file",
+    "is_consistent",
+    "get_repairs",
+    "apply_repairs",
+    "model_to_file",
+
     "Edge",
     "Function",
-    "get_observation_set",
-    "get_repairs",
-    "is_consistent",
-    "load_model",
-    "model_from_dict",
     "Model",
     "Node",
     "Observation",
     "ObservationSet",
-    "save_model",
 ]

@@ -71,6 +71,7 @@ def consistency_to_str(
         s += '  "inconsistencies": ['
         for inconsistency in unique_inconsistencies:
             s += "    {" + inconsistency.print_inconsistency() + "},"
+        s = s.rstrip(',')  # Remove trailing comma
         s += "  ]\n}"
     # else, human-readable format
     else:

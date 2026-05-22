@@ -3,37 +3,37 @@
 from __future__ import annotations
 
 import copy
+import itertools
 import os
+import json
 from pathlib import Path
-from typing import Iterable, Mapping, Sequence
+from typing import Mapping, List
 
+from pymodrev.configuration import config
 from pymodrev.network.model import Model
+from pymodrev.network.inconsistency_solution import InconsistencySolution
 from pymodrev.network.observation import Observation
 from pymodrev.network.observation_set import ObservationSet
 from pymodrev.parsers.boolean_expression import parse_and_minimise_expression
 from pymodrev.parsers.parser_factory import get_parser
-from pymodrev.repair.consistency import check_consistency
+from pymodrev.repair.consistency import check_consistency, consistency_to_str
 from pymodrev.repair.engine import model_revision
 from pymodrev.repair.repair import apply_repair as _apply_repair_in_place
 from pymodrev.updaters.factory import get_updater
 
-
+# This keeps the state between function calls between API function calls
 _OBSERVATION_SET = ObservationSet()
-_LAST_USED_OBSERVATION_NAMES: list[str] | None = None
+_LAST_USED_OBSERVATION_NAMES: List[str] | None = None
 _LAST_OPTIMIZATION: int | None = None
-
+_LAST_INCONSISTENCIES: List[InconsistencySolution] | None = None
 
 def clear_obs() -> None:
     """Remove all observations stored in the module-level registry."""
-    global _OBSERVATION_SET, _LAST_USED_OBSERVATION_NAMES, _LAST_OPTIMIZATION
+    global _OBSERVATION_SET, _LAST_USED_OBSERVATION_NAMES, _LAST_OPTIMIZATION, _LAST_INCONSISTENCIES
     _OBSERVATION_SET = ObservationSet()
     _LAST_USED_OBSERVATION_NAMES = None
     _LAST_OPTIMIZATION = None
-
-
-def get_observation_set() -> ObservationSet:
-    """Return the module-level observation registry."""
-    return _OBSERVATION_SET
+    _LAST_INCONSISTENCIES = None
 
 
 def _coerce_expression(expression) -> str:
@@ -49,9 +49,8 @@ def _coerce_expression(expression) -> str:
 def model_from_dict(model_definition: Mapping[str, object]) -> Model:
     """Build a model from a node-to-expression mapping.
 
-    The expressions are parsed with the same boolean-expression pipeline used
-    by the file parsers, so they are simplified and converted to signed edges
-    before being stored in the network.
+    The Boolean expressions are parsed and simplified to extract the 
+    edges and corresponding signs, before being stored in the model.
     """
     network = Model()
 
@@ -65,15 +64,23 @@ def model_from_dict(model_definition: Mapping[str, object]) -> Model:
             target_node = network.add_node(target)
 
         expression_text = _coerce_expression(expression).strip()
-        if expression_text in {"0", "1"}:
+        if expression_text in ("0", "1"):
             from pymodrev.parsers.boolean_expression import add_positive_autoregulation
-
             if expression_text == "1":
                 add_positive_autoregulation(network, target_node, target)
             continue
 
         parse_and_minimise_expression(network, target_node, target, expression_text)
 
+    return network
+
+
+def model_from_file(filepath: os.PathLike[str] | str) -> Model:
+    """Load a model from a supported file format (.bnet, .zginml, .lp)."""
+    filename = os.fspath(filepath)
+    network = Model()
+    parser = get_parser(filename)
+    parser.read(network, filename)
     return network
 
 
@@ -112,14 +119,13 @@ def _add_observation_value(
     observation.add_data(exp_id, time, node_id, int(value))
 
 
-def add_obs(name: str, data: Mapping, updater_type: str) -> Observation:
+def add_obs(name: str, data: Mapping, updater_type: str) -> None:
     """Create and register an observation from a dictionary."""
     observation = _build_observation_from_data(name, data, updater_type)
     _OBSERVATION_SET.add_observation(observation)
-    return observation
 
 
-def _subset_observations(observation_names: Iterable[str] | None) -> ObservationSet:
+def _subset_observations(observation_names: List[str] | None) -> ObservationSet:
     if observation_names is None:
         return _OBSERVATION_SET
 
@@ -132,50 +138,79 @@ def _subset_observations(observation_names: Iterable[str] | None) -> Observation
     return subset
 
 
-def is_consistent(
-    model: Model,
-    observation_names: Sequence[str] | None = None,
-) -> tuple[bool, list]:
+def is_consistent(model: Model, observation_names: List[str],
+                  sol: int = 1) -> str:
     """Check whether a model is consistent with the selected observations."""
-    global _LAST_USED_OBSERVATION_NAMES, _LAST_OPTIMIZATION
-    selected_names = list(observation_names) if observation_names is not None else None
-    observation_set = _subset_observations(selected_names)
+    if sol not in (1, 2, 3, 4):
+        raise ValueError("sol must be one of: 1, 2, 3, 4")
+
+    # Keep API defaults focused on speed unless the caller requests otherwise.
+    config.solutions = sol # default 1st solution for API context
+    config.format = 'j' # default JSON format for API context
+
+    if not observation_names:
+        raise ValueError("At least one observation name must be provided")
+    if isinstance(observation_names, str):
+        observation_names = [observation_names]
+    observation_set = _subset_observations(observation_names)
+
     inconsistencies, optimization = check_consistency(model, observation_set)
-    _LAST_USED_OBSERVATION_NAMES = selected_names
+    global _LAST_USED_OBSERVATION_NAMES, _LAST_INCONSISTENCIES, _LAST_OPTIMIZATION
+    _LAST_USED_OBSERVATION_NAMES = observation_names
+    _LAST_INCONSISTENCIES = inconsistencies
     _LAST_OPTIMIZATION = optimization
-    return optimization == 0, inconsistencies
+    
+    return json.loads(consistency_to_str(inconsistencies, optimization))
 
 
-def get_repairs(
-    model: Model,
-    inconsistencies,
-    observation_names: Sequence[str] | None = None,
-):
-    """Compute repair solutions for the provided inconsistencies."""
-    selected_names = list(observation_names) if observation_names is not None else _LAST_USED_OBSERVATION_NAMES
-    observation_set = _subset_observations(selected_names)
+def get_repairs(model: Model) -> dict:
+    """Compute repair solutions from the previous is_consistent() call."""
+    if not _LAST_USED_OBSERVATION_NAMES or not _LAST_INCONSISTENCIES or _LAST_OPTIMIZATION is None:
+        raise ValueError("is_consistent() method must be run before")
+    if _LAST_OPTIMIZATION == 0:
+        raise ValueError("Model is already consistent; no repairs to return")
 
-    optimization = _LAST_OPTIMIZATION if _LAST_OPTIMIZATION is not None else (1 if inconsistencies else 0)
-    return model_revision(model, observation_set, inconsistencies, optimization)
-
-
-def apply_repair(model: Model, repair, node_repair_map: dict | None = None) -> Model:
-    """Apply a repair to a copy of the given model and return the copy."""
-    repaired_model = copy.deepcopy(model)
-    _apply_repair_in_place(repaired_model, repair, node_repair_map or {})
-    return repaired_model
+    observation_set = _subset_observations(_LAST_USED_OBSERVATION_NAMES)
+    config.task = 'r'
+    config.format = 'j'
+    _LAST_REPAIRS, s = model_revision(model, observation_set, _LAST_INCONSISTENCIES, _LAST_OPTIMIZATION)
+    return json.loads(s)
 
 
-def load_model(filepath: os.PathLike[str] | str) -> Model:
-    """Load a model from a supported file format."""
-    filename = os.fspath(filepath)
-    network = Model()
-    parser = get_parser(filename)
-    parser.read(network, filename)
-    return network
+def apply_repairs(model: Model, repairs) -> list[Model]:
+    """Apply one or more repair solutions and return repaired model variants.
+
+    For each inconsistency solution, this enumerates the Cartesian product of
+    per-node repair sets, mirroring the CLI `-t m` workflow.
+    """
+    if repairs is None:
+        return []
+
+    if not isinstance(repairs, list):
+        repairs = [repairs]
+
+    repaired_models: list[Model] = []
+    for repair_solution in repairs:
+        nodes_with_repairs = []
+        for node_id in sorted(repair_solution.inconsistent_nodes.keys()):
+            i_node = repair_solution.inconsistent_nodes[node_id]
+            if i_node.repair_sets:
+                nodes_with_repairs.append([(node_id, rs) for rs in i_node.repair_sets])
+
+        if not nodes_with_repairs:
+            repaired_models.append(copy.deepcopy(model))
+            continue
+
+        for combination in itertools.product(*nodes_with_repairs):
+            node_repair_map = dict(combination)
+            repaired_model = copy.deepcopy(model)
+            _apply_repair_in_place(repaired_model, repair_solution, node_repair_map)
+            repaired_models.append(repaired_model)
+
+    return repaired_models
 
 
-def save_model(model: Model, filepath: os.PathLike[str] | str) -> None:
+def model_to_file(model: Model, filepath: os.PathLike[str] | str) -> None:
     """Write a model to disk using the parser that matches the file extension."""
     filename = os.fspath(filepath)
     Path(filename).parent.mkdir(parents=True, exist_ok=True)

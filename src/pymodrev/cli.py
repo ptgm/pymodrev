@@ -142,7 +142,7 @@ def main():
     # Check consistency
     f_inconsistencies, optimization = check_consistency(network, observation_set)
     if config.task == 'c' or optimization == 0:
-        print(print_consistency(f_inconsistencies, optimization))
+        print(consistency_to_str(f_inconsistencies, optimization))
         sys.exit(0)
 
     # Model revision
