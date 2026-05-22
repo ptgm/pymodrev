@@ -34,6 +34,53 @@ def check_consistency(network: Model, observation_set: ObservationSet) -> Tuple[
     return result, optimization
 
 
+def consistency_to_str(
+        inconsistencies: List[InconsistencySolution],
+        optimization: int) -> str:
+    """
+    Returns the consistency of the model in three formats: 
+    compact, json and human-readable.
+    """
+    if optimization == 0:
+        # compact format
+        if config.format == 'c':
+            return 'Consistent!'
+        # json format
+        elif config.format == 'j':
+            return '{"consistent": true}'
+        # human-readable format
+        return 'This model is consistent!'
+
+    # else, the model is inconsistent
+    # Not really printing all the inconsistency solutions
+    # Only the unique inconsistency solutions with respect to:
+    # . inconsistent nodes
+    # . inconsistent profiles
+    unique_inconsistencies = set(inconsistencies)
+    s = ''
+    if config.format == 'c':
+        # compact format
+        s += 'Inconsistent!\n'
+        if optimization < 0 and not unique_inconsistencies:
+            s += ' Points of repair not found, probably due to fixed edges/nodes\n'
+        for inconsistency in unique_inconsistencies:
+            s += " " + inconsistency.print_inconsistency() + "\n"
+    elif config.format == 'j':
+        # json format
+        s += '{\n  "consistent": false,'
+        s += '  "inconsistencies": ['
+        for inconsistency in unique_inconsistencies:
+            s += "    {" + inconsistency.print_inconsistency() + "},"
+        s += "  ]\n}"
+    # else, human-readable format
+    else:
+        s += "This model is inconsistent!"
+        for inconsistency in unique_inconsistencies:
+            s += "\n" + inconsistency.print_inconsistency()
+
+    return s
+
+
 def n_func_inconsistent_with_label(
         network: Model,
         observation_set: ObservationSet,

@@ -6,7 +6,7 @@ a network model for consistency.
 """
 
 import logging
-from typing import List
+from typing import List, Tuple
 
 from pymodrev.network.inconsistency_solution import InconsistencySolution
 from pymodrev.network.model import Model
@@ -22,7 +22,7 @@ def model_revision(
     network: Model,
     observation_set: ObservationSet,
     f_inconsistencies: List[InconsistencySolution],
-    optimization: int) -> List[InconsistencySolution]:
+    optimization: int) -> Tuple[List[InconsistencySolution], str]:
     """
     Analyze and revise a given network model for consistency.
     Procedure:
@@ -32,7 +32,7 @@ def model_revision(
     """
     if optimization < 0:
         logger.error("Points of repair not found, probably due to fixed edges/nodes or node data expecting different outputs for the same input.")
-        return []
+        return [], ""
 
     logger.debug(f"Found {len(f_inconsistencies)} solution(s) with {len(f_inconsistencies[0].inconsistent_nodes)} inconsistent node(s)")
 
@@ -40,6 +40,7 @@ def model_revision(
     # to be repaired
     best_solution = None
     solutions2apply = []
+    s = ""
     for inconsistency in f_inconsistencies:
         repair_inconsistencies(network, observation_set, inconsistency)
 
@@ -56,7 +57,7 @@ def model_revision(
 
     if best_solution is None:
         logger.info("It was not possible to repair the model.")
-        return []
+        return [], ""
     
     if config.solutions > 2:
         for inconsistency in f_inconsistencies:
@@ -64,66 +65,11 @@ def model_revision(
             if not inconsistency.has_impossibility \
                     and (inconsistency.compare_repairs(best_solution) >= 0
                          or config.solutions == 4):
-                if config.solutions == 4 and config.task != 'm' \
-                        and inconsistency.compare_repairs(best_solution) < 0:
-                    if config.format != 'h':
-                        print("+", end="")
-                    else:
-                        print("(Sub-Optimal Solution)")
-                if config.task == 'r':
-                    inconsistency.print_solution(network=network)
-                else:
-                    solutions2apply.append(inconsistency)
+                subopt = config.solutions == 4 and config.task != 'm' \
+                        and inconsistency.compare_repairs(best_solution) < 0
+                s += inconsistency.solution_to_str(network, subopt)
+                solutions2apply.append(inconsistency)
     else:
-        if config.task == 'r':
-            if config.solutions == 1:
-                if config.format != 'h':
-                    print("+", end="")
-                else:
-                    print("(Potential Sub-Optimal Solution)")
-            best_solution.print_solution(network=network)
-        else:
-            solutions2apply.append(best_solution)
-    return solutions2apply
-
-def print_consistency(
-        inconsistencies: List[InconsistencySolution],
-        optimization: int) -> None:
-    """
-    Print the consistency of the model in three formats: 
-    compact, json and human-readable.
-    """
-    if optimization == 0:
-        # compact format
-        if config.format == 'c': print('Consistent!')
-        # json format
-        elif config.format == 'j': print('{"consistent": true}')
-        # human-readable format
-        else: print("This model is consistent!")
-        return
-
-    # else, the model is inconsistent
-    # Not really printing all the inconsistency solutions
-    # Only the unique inconsistency solutions with respect to:
-    # . inconsistent nodes
-    # . inconsistent profiles
-    unique_inconsistencies = set(inconsistencies)
-    if config.format == 'c':
-        # compact format
-        print('Inconsistent!')
-        if optimization < 0 and not unique_inconsistencies:
-            print(' Points of repair not found, probably due to fixed edges/nodes')
-        for inconsistency in unique_inconsistencies:
-            print(" " + inconsistency.print_inconsistency())
-    elif config.format == 'j':
-        # json format
-        print('{\n  "consistent": false,')
-        print('  "inconsistencies": [')
-        for inconsistency in unique_inconsistencies:
-            print("    {" + inconsistency.print_inconsistency() + "},")
-        print("  ]\n}")
-    # else, human-readable format
-    else:
-        print("This model is inconsistent!")
-        for inconsistency in unique_inconsistencies:
-            print(inconsistency.print_inconsistency())
+        s += best_solution.solution_to_str(network, config.solutions == 1)
+        solutions2apply.append(best_solution)
+    return solutions2apply, s

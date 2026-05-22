@@ -15,8 +15,7 @@ from pymodrev.network.observation_set import ObservationSet
 from pymodrev.parsers.parser_factory import get_parser
 from pymodrev.configuration import config
 from pymodrev.repair.engine import model_revision
-from pymodrev.repair.consistency import check_consistency
-from pymodrev.repair.engine import print_consistency
+from pymodrev.repair.consistency import check_consistency, consistency_to_str
 from pymodrev.repair.repair import apply_repair
 from pymodrev.parsers.parser_observation import get_observation_parser
 from pymodrev.network.exceptions import EdgeNotFoundError
@@ -143,12 +142,15 @@ def main():
     # Check consistency
     f_inconsistencies, optimization = check_consistency(network, observation_set)
     if config.task == 'c' or optimization == 0:
-        print_consistency(f_inconsistencies, optimization)
+        print(print_consistency(f_inconsistencies, optimization))
         sys.exit(0)
 
     # Model revision
-    repairs_sols = model_revision(network, observation_set, f_inconsistencies, optimization)
-    if config.task == 'm':
+    repairs_sols, output = model_revision(
+        network, observation_set, f_inconsistencies, optimization)
+    if config.task == 'r':
+        print(output)
+    else:
         import copy
         import itertools
 

@@ -7,6 +7,7 @@ sets, and other related properties.
 
 import json
 from typing import Dict
+from pymodrev.network.model import Model
 from pymodrev.network.repair_set import RepairSet
 from pymodrev.network.inconsistent_node import InconsistentNode
 from pymodrev.configuration import config
@@ -249,64 +250,67 @@ class InconsistencySolution:
                     self.n_repair_operations += repair_set.n_repair_operations
             target.add_repair_set(repair_set)
 
-    def print_solution(self, network=None) -> None:
+    def solution_to_str(self, network: Model, subopt: bool = False) -> str:
         """
         Prints the solution based on the specified format.
         """
         if config.format == 'c':
-            self.print_compact_v0_solution(network=network)
+            return self.solution_to_compact_str(network, subopt)
         elif config.format == 'j':
-            self.print_json_v1_solution(network=network)
+            return self.solution_to_json_str(network, subopt)
         else:
-            self.print_human_v2_solution(network=network)
+            return self.solution_to_human_str(network, subopt)
 
-    def print_compact_v0_solution(self, network=None) -> None:
+    def solution_to_compact_str(self, network: Model, subopt: bool = False) -> str:
         """
-        Prints the solution in a compact format.
+        Returns the solution in a compact format.
         """
         first_node = True
+        s = ""
+        if subopt: s += "+"
         for i_node in self.inconsistent_nodes.values():
             if not first_node:
-                print("/", end="")
+                s += "/"
             first_node = False
-            print(i_node.identifier, end="")
-            print("@", end="")
+            s += i_node.identifier + "@"
             first_repair = True
             for repair in i_node.repair_sets:
                 if not first_repair:
-                    print(";", end="")
+                    s += ";"
                 first_repair = False
                 first = True
                 for added_edge in repair.added_edges:
                     if not first:
-                        print(":", end="")
+                        s += ":"
                     first = False
-                    print(f"A,{added_edge.start_node.identifier},{added_edge.end_node.identifier},{added_edge.sign}", end="")
+                    s += f"A,{added_edge.start_node.identifier},{added_edge.end_node.identifier},{added_edge.sign}"
                 for removed_edge in repair.removed_edges:
                     if not first:
-                        print(":", end="")
+                        s += ":"
                     first = False
-                    print(f"R,{removed_edge.start_node.identifier},{removed_edge.end_node.identifier}", end="")
+                    s += f"R,{removed_edge.start_node.identifier},{removed_edge.end_node.identifier}"
                 for flipped_edge in repair.flipped_edges:
                     if not first:
-                        print(":", end="")
+                        s += ":"
                     first = False
-                    print(f"E,{flipped_edge.start_node.identifier},{flipped_edge.end_node.identifier}", end="")
+                    s += f"E,{flipped_edge.start_node.identifier},{flipped_edge.end_node.identifier}"
                 for repaired_function in repair.repaired_functions:
                     if not first:
-                        print(":", end="")
+                        s += ":"
                     first = False
-                    print(f"F,{repaired_function.print_function(network=network, repair_set=repair)}", end="")
-        print()
+                    s += f"F,{repaired_function.print_function(network=network, repair_set=repair)}"
+        return s + "\n"
 
-    def print_json_v1_solution(self, network=None):
+    def solution_to_json_str(self, network: Model, subopt: bool = False) -> str:
         """
-        Prints the solution in JSON format.
+        Returns the solution in JSON format.
         """
         result = {
+            "suboptimal": False,
             "solution_repairs": self.n_repair_operations,
             "node_repairs": []
         }
+        if subopt: result["suboptimal"] = True
 
         for node in self.inconsistent_nodes.values():
             node_data = {
@@ -352,42 +356,44 @@ class InconsistencySolution:
                     })
                 node_data["repair_set"].append(repair_data)
             result["node_repairs"].append(node_data)
-        print(json.dumps(result, indent=4))
+        return json.dumps(result, indent=2)
 
-    def print_human_v2_solution(self, network=None) -> None:
+    def solution_to_human_str(self, network: Model, subopt: bool = False) -> str:
         """
-        Prints the solution in a human-readable format.
+        Returns the solution in a human-readable format.
         """
-        print(f"### Found solution with {self.n_repair_operations} repair operations.")
+        s = f"### Found {'' if not subopt else 'Sub-'}optimal solution with" \
+         + f" {self.n_repair_operations} repair operations.\n"
         for i_node in self.inconsistent_nodes.values():
-            print(f"\tInconsistent node {i_node.identifier}.")
+            s += f"\tInconsistent node {i_node.identifier}.\n"
             i = 1
             for repair in i_node.repair_sets:
-                print(f"\t\tRepair #{i}:")
+                s += f"\t\tRepair #{i}:\n"
                 i += 1
                 for repaired_function in repair.repaired_functions:
-                    print(f"\t\t\tChange function of {repaired_function.node_id} to: " + \
-                        f"{repaired_function.print_function(network=network, repair_set=repair)}")
+                    s += f"\t\t\tChange function of {repaired_function.node_id} to: " + \
+                        f"{repaired_function.print_function(network=network, repair_set=repair)}\n"
                 for flipped_edge in repair.flipped_edges:
-                    print(f"\t\t\tFlip sign of edge ({flipped_edge.start_node.identifier}," + \
+                    s += f"\t\t\tFlip sign of edge ({flipped_edge.start_node.identifier}," + \
                         f"{flipped_edge.end_node.identifier}) to: " + \
-                        ("negative" if flipped_edge.sign == 1 else "positive"))
+                        ("negative" if flipped_edge.sign == 1 else "positive") + "\n"
                 for removed_edge in repair.removed_edges:
-                    print(f"\t\t\tRemove edge ({removed_edge.start_node.identifier}," + \
-                        f"{removed_edge.end_node.identifier}).")
+                    s += f"\t\t\tRemove edge ({removed_edge.start_node.identifier}," + \
+                        f"{removed_edge.end_node.identifier}).\n"
                 for added_edge in repair.added_edges:
-                    print(f"\t\t\tAdd edge ({added_edge.start_node.identifier}," + \
-                        f"{added_edge.end_node.identifier}) with sign {added_edge.sign}.")
+                    s += f"\t\t\tAdd edge ({added_edge.start_node.identifier}," + \
+                        f"{added_edge.end_node.identifier}) with sign {added_edge.sign}.\n"
         if config.labelling:
-            print("\t### Labelling for this solution:")
+            s += "\t### Labelling for this solution:\n"
             multiple_profiles = config.multiple_profiles
             for profile, times in self.v_label.items():
                 if multiple_profiles:
-                    print(f"\t\tProfile: {profile}")
+                    s += f"\t\tProfile: {profile}\n"
                 for time, ids in times.items():
-                    print(f"\t\t\tTime step: {time}")
+                    s += f"\t\t\tTime step: {time}\n"
                     for _id, value in ids.items():
-                        print(f"\t\t\t\t{_id} => {value}")
+                        s += f"\t\t\t\t{_id} => {value}\n"
+        return s
 
     def print_inconsistency(self) -> str:
         """
@@ -397,10 +403,10 @@ class InconsistencySolution:
         result = ""
         if config.format == 'c':
             # compact format
-            result += 'N[' + ",".join([f'{i_node.identifier.replace(chr(34), "")}' \
-                    for i_node in self.inconsistent_nodes.values()]) + ']'
-            result += ';P[' + ",".join([f'{i_profile.replace(chr(34), "")}' \
-                for i_profile in self.inconsistent_profiles]) + ']'
+            result += 'Obs:' + ",".join([f'{i_profile.replace(chr(34), "")}' \
+                for i_profile in self.inconsistent_profiles])
+            result += ' Nodes:' + ",".join([f'{i_node.identifier.replace(chr(34), "")}' \
+                    for i_node in self.inconsistent_nodes.values()])
         elif config.format == 'j':
             # json format
             result += '"nodes": [' + \
