@@ -1,6 +1,6 @@
 """
-This module contains the NotSteadyStateUpdater class, which extends the SyncUpdater
-to handle synchronous updates with consistency checks to avoid the corresponding given steady-state.
+This module contains the NotSteadyStateUpdater class, which extends the AsyncUpdater
+to handle asynchronous updates with consistency checks to avoid the corresponding given steady-state.
 """
 
 import clingo
@@ -9,7 +9,7 @@ from pymodrev.updaters.async_updater import AsyncUpdater
 
 class NotsteadyUpdater(AsyncUpdater):
     """
-    This class extends SyncUpdater and provides specific rules to ensure
+    This class extends AsyncUpdater and provides specific rules to ensure
     the consistency of updates to avoid a steady-state.
     """
 
