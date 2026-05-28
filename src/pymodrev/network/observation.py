@@ -45,7 +45,7 @@ class Observation:
         for exp_id in sorted(list(self.experiments)):
             facts.append(f"exp({asp_quote(exp_id)}).")
             if self.updater is not None:
-                facts.append(f"exp({asp_quote(exp_id)},{self.updater.get_type()}).")
+                facts.append(f"exp({asp_quote(exp_id)},{self.updater.get_name()}).")
         
         for exp_id, time, node_id, value in self.data:
             if time is None:
