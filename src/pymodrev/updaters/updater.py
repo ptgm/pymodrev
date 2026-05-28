@@ -34,7 +34,17 @@ class Updater(ABC):
         """
         Subclasses must implement this method to return the update type
         (e.g., sync, async, etc.).
+        This is used by the user to specify the updater.
         """
+
+    @staticmethod
+    def get_name() -> str:
+        """
+        Subclasses should redifine this method to return a different updater name
+        (e.g., reachasync, async, etc.).
+        This is used when generating asp facts.
+        """
+        return Updater.get_type()
 
     @staticmethod
     @abstractmethod
