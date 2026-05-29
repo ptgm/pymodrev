@@ -23,14 +23,16 @@ from pymodrev.updaters.factory import get_updater
 
 # This keeps the state between function calls between API function calls
 _OBSERVATION_SET = ObservationSet()
+_LAST_REPAIRS: List[InconsistencySolution] | None = None
 _LAST_USED_OBSERVATION_NAMES: List[str] | None = None
 _LAST_OPTIMIZATION: int | None = None
 _LAST_INCONSISTENCIES: List[InconsistencySolution] | None = None
 
 def clear_obs() -> None:
     """Remove all observations stored in the module-level registry."""
-    global _OBSERVATION_SET, _LAST_USED_OBSERVATION_NAMES, _LAST_OPTIMIZATION, _LAST_INCONSISTENCIES
+    global _OBSERVATION_SET, _LAST_REPAIRS, _LAST_USED_OBSERVATION_NAMES, _LAST_OPTIMIZATION, _LAST_INCONSISTENCIES
     _OBSERVATION_SET = ObservationSet()
+    _LAST_REPAIRS = None
     _LAST_USED_OBSERVATION_NAMES = None
     _LAST_OPTIMIZATION = None
     _LAST_INCONSISTENCIES = None
@@ -122,6 +124,7 @@ def _add_observation_value(
 def add_obs(name: str, data: Mapping, updater_type: str) -> None:
     """Create and register an observation from a dictionary."""
     observation = _build_observation_from_data(name, data, updater_type)
+    global _OBSERVATION_SET
     _OBSERVATION_SET.add_observation(observation)
 
 
@@ -155,10 +158,11 @@ def is_consistent(model: Model, observation_names: List[str],
     observation_set = _subset_observations(observation_names)
 
     inconsistencies, optimization = check_consistency(model, observation_set)
-    global _LAST_USED_OBSERVATION_NAMES, _LAST_INCONSISTENCIES, _LAST_OPTIMIZATION
+    global _LAST_USED_OBSERVATION_NAMES, _LAST_INCONSISTENCIES, _LAST_OPTIMIZATION, _LAST_REPAIRS
     _LAST_USED_OBSERVATION_NAMES = observation_names
     _LAST_INCONSISTENCIES = inconsistencies
     _LAST_OPTIMIZATION = optimization
+    _LAST_REPAIRS = None
     
     return json.loads(consistency_to_str(inconsistencies, optimization))
 
@@ -173,24 +177,26 @@ def get_repairs(model: Model) -> dict:
     observation_set = _subset_observations(_LAST_USED_OBSERVATION_NAMES)
     config.task = 'r'
     config.format = 'j'
+    global _LAST_REPAIRS
     _LAST_REPAIRS, s = model_revision(model, observation_set, _LAST_INCONSISTENCIES, _LAST_OPTIMIZATION)
     return json.loads(s)
 
 
-def apply_repairs(model: Model, repairs) -> list[Model]:
+def apply_repairs(model: Model) -> list[Model]:
     """Apply one or more repair solutions and return repaired model variants.
 
     For each inconsistency solution, this enumerates the Cartesian product of
     per-node repair sets, mirroring the CLI `-t m` workflow.
     """
-    if repairs is None:
-        return []
-
-    if not isinstance(repairs, list):
-        repairs = [repairs]
+    if not _LAST_USED_OBSERVATION_NAMES or not _LAST_INCONSISTENCIES or _LAST_OPTIMIZATION is None:
+        raise ValueError("is_consistent() method must be run before")
+    if _LAST_OPTIMIZATION == 0:
+        raise ValueError("Model is already consistent; no repairs to return")
+    if _LAST_REPAIRS is None:
+        raise ValueError("get_repairs() must be run before")
 
     repaired_models: list[Model] = []
-    for repair_solution in repairs:
+    for repair_solution in _LAST_REPAIRS:
         nodes_with_repairs = []
         for node_id in sorted(repair_solution.inconsistent_nodes.keys()):
             i_node = repair_solution.inconsistent_nodes[node_id]
@@ -198,7 +204,6 @@ def apply_repairs(model: Model, repairs) -> list[Model]:
                 nodes_with_repairs.append([(node_id, rs) for rs in i_node.repair_sets])
 
         if not nodes_with_repairs:
-            repaired_models.append(copy.deepcopy(model))
             continue
 
         for combination in itertools.product(*nodes_with_repairs):

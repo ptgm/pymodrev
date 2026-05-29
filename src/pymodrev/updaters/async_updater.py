@@ -25,11 +25,16 @@ class AsyncUpdater(TimeSeriesUpdater):
     @staticmethod
     def get_type() -> str:
         """
-        This method to return the update type
-        (e.g., sync, async, etc.).
+        This is used by the user to specify the updater.
         """
         return "async"
 
+    @staticmethod
+    def get_name() -> str:
+        """
+        This is used when generating asp facts.
+        """
+        return AsyncUpdater.get_type()
 
     @staticmethod
     def add_specific_rules(ctl: clingo.Control) -> None:

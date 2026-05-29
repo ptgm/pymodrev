@@ -24,10 +24,16 @@ class SyncUpdater(TimeSeriesUpdater):
     @staticmethod
     def get_type() -> str:
         """
-        This method to return the update type
-        (e.g., sync, async, etc.).
+        This is used by the user to specify the updater.
         """
         return "sync"
+
+    @staticmethod
+    def get_name() -> str:
+        """
+        This is used when generating asp facts.
+        """
+        return SyncUpdater.get_type()
 
 
     @staticmethod

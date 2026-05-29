@@ -64,6 +64,17 @@ def test_apply_repairs_accepts_single_solution():
     model = mrev.model_from_dict({"A": "A"})
     mrev.add_obs("obs1", {"A": 0}, "notsteady")
     mrev.is_consistent(model, ["obs1"])
-    repaired_models = mrev.apply_repairs(model, InconsistencySolution())
+    mrev.get_repairs(model)
+    repaired_models = mrev.apply_repairs(model)
     assert len(repaired_models) == 1
     assert repaired_models[0] is not model
+
+def test_apply_empty_repairs():
+    model = mrev.model_from_dict({"A": "A"})
+    mrev.add_obs("obs1", {"A": 0}, "notsteady")
+    mrev.is_consistent(model, ["obs1"])
+    try:
+        mrev.apply_repairs(model)
+        assert False, "Expected ValueError when no repairs are available"
+    except ValueError as e:
+        assert str(e) == "get_repairs() must be run before"

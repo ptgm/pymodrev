@@ -6,6 +6,9 @@ observation file exists.
 """
 
 import os
+from pymodrev.updaters.async_updater import AsyncUpdater
+from pymodrev.updaters.reachsync_updater import ReachsyncUpdater
+from pymodrev.updaters.reachasync_updater import ReachasyncUpdater
 from pymodrev.updaters.updater import Updater
 from pymodrev.parsers.asp_utils import asp_quote
 
@@ -28,16 +31,16 @@ class Observation:
         self.experiments: Set[str] = set()
         # Data format: (experiment_id, time, node_id, value)
         # where time is None for steady-state observations
-        self.data: List[Tuple[str, Optional[int], str, int]] = []
+        self.data: List[Tuple[str, Optional[str], str, int]] = []
 
-    def add_data(self, exp_id: str, time: Optional[int], node_id: str, value: int):
+    def add_data(self, exp_id: str, time: Optional[str], node_id: str, value: int):
         """
         Adds an observation data point.
         """
         self.experiments.add(exp_id)
         self.data.append((exp_id, time, node_id, value))
 
-    def to_asp_facts(self) -> str:
+    def to_asp_facts(self, dimension: int) -> str:
         """
         Generates ASP facts from the internal observation data.
         """
@@ -48,11 +51,20 @@ class Observation:
                 facts.append(f"exp({asp_quote(exp_id)},{self.updater.get_name()}).")
         
         for exp_id, time, node_id, value in self.data:
-            if time is None:
+            if time is None: # steady state
                 facts.append(f"obs_vlabel({asp_quote(exp_id)},{asp_quote(node_id)},{value}).")
             else:
-                facts.append(f"obs_vlabel({asp_quote(exp_id)},{time},{asp_quote(node_id)},{value}).")
-        
+                if time == 'init': time = 0
+                try:
+                    t = int(time)
+                    facts.append(f"obs_vlabel({asp_quote(exp_id)},{time},{asp_quote(node_id)},{value}).")
+                except ValueError:
+                    facts.append(f"obs_named_vlabel({asp_quote(exp_id)},{time},{asp_quote(node_id)},{value}).")
+
+        if self.updater.get_type() in [ReachasyncUpdater.get_type(), ReachsyncUpdater.get_type()]:
+            for exp_id in self.experiments:
+                facts.append(f"max_time({exp_id},{2**dimension}).")
+
         return "\n".join(facts) + "\n"
 
     def __str__(self):

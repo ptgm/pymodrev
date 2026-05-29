@@ -2,11 +2,13 @@ from pymodrev.updaters.factory import get_available_updaters, get_updater, is_va
 from pymodrev.updaters.async_updater import AsyncUpdater
 from pymodrev.updaters.complete_updater import CompleteUpdater
 from pymodrev.updaters.notsteady_updater import NotsteadyUpdater
+from pymodrev.updaters.reachasync_updater import ReachasyncUpdater
+from pymodrev.updaters.reachsync_updater import ReachsyncUpdater
 from pymodrev.updaters.steady_updater import SteadyUpdater
 from pymodrev.updaters.sync_updater import SyncUpdater
 
 _EXPECTED_UPDATERS = [
-    "steady", "sync", "async", "complete", "notsteady"
+    "steady", "sync", "async", "complete", "notsteady", "reachasync", "reachsync"
 ]
 
 def test_discovered_updater_types_match_declared_types():
@@ -26,6 +28,8 @@ def test_get_updater_returns_expected_type_instance():
     assert get_updater("async").__class__.__name__ == AsyncUpdater.__name__
     assert get_updater("complete").__class__.__name__ == CompleteUpdater.__name__
     assert get_updater("notsteady").__class__.__name__ == NotsteadyUpdater.__name__
+    assert get_updater("reachasync").__class__.__name__ == ReachasyncUpdater.__name__
+    assert get_updater("reachsync").__class__.__name__ == ReachsyncUpdater.__name__
 
 
 def test_get_updater_raises_for_unknown_type():

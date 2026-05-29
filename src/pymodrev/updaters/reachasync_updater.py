@@ -16,16 +16,14 @@ class ReachasyncUpdater(AsyncUpdater):
     @staticmethod
     def get_type() -> str:
         """
-        This method to return the update type
-        (e.g., sync, async, etc.).
+        This is used by the user to specify the updater.
         """
         return "reachasync"
 
     @staticmethod
     def get_name() -> str:
         """
-        This method to return the update type
-        (e.g., sync, async, etc.).
+        This is used when generating asp facts.
         """
         return "async"
 

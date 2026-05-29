@@ -38,13 +38,13 @@ class Updater(ABC):
         """
 
     @staticmethod
+    @abstractmethod
     def get_name() -> str:
         """
         Subclasses should redifine this method to return a different updater name
         (e.g., reachasync, async, etc.).
         This is used when generating asp facts.
         """
-        return Updater.get_type()
 
     @staticmethod
     @abstractmethod
@@ -109,7 +109,8 @@ class Updater(ABC):
             asp_facts = network.to_asp_facts()
             ctl.add("base", [], asp_facts)
             for obs in observation_set.observations:
-                ctl.add("base", [], obs.to_asp_facts())
+                ctl.add("base", [], obs.to_asp_facts(network.dimension))
+
             ctl.ground([('base', [])])
             with ctl.solve(yield_=True) as handle:
                 if handle.get().satisfiable:

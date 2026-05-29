@@ -35,6 +35,11 @@ class Model:
     def graph(self) -> Dict[str, List[Edge]]:
         """Returns the graph representation of the model."""
         return self._graph
+    
+    @property
+    def dimension(self) -> int:
+        """Returns the number of Nodes in the model."""
+        return len(self._nodes)
 
     @property
     def regulators(self) -> Dict[str, List[str]]:
