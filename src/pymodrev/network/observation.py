@@ -63,7 +63,7 @@ class Observation:
 
         if self.updater.get_type() in [ReachasyncUpdater.get_type(), ReachsyncUpdater.get_type()]:
             for exp_id in self.experiments:
-                facts.append(f"max_time({exp_id},{2**dimension}).")
+                facts.append(f"max_time({asp_quote(exp_id)},{2**dimension - 1}).")
 
         return "\n".join(facts) + "\n"
 
