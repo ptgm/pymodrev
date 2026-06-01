@@ -58,13 +58,12 @@ def search_comparable_functions(
     t_candidates = original_f.pfh_get_replacements(generalize)
 
     while t_candidates:
-        candidate_sol = False
         candidate = t_candidates.pop(0)
+        # Already found a good function, but will still search for more equally good
         if function_repaired and candidate.distance_from_original > \
                 repaired_function_level:
             continue
         if is_func_consistent_with_label(network, observation_set, inconsistency, candidate):
-            candidate_sol = True
             repair_set = RepairSet()
             repair_set.add_repaired_function(candidate)
             for edge in flipped_edges:
@@ -78,6 +77,8 @@ def search_comparable_functions(
             function_repaired = True
             sol_found = True
             repaired_function_level = candidate.distance_from_original
+            if config.solutions <= 2:
+                break
         else:
             taux_candidates = candidate.pfh_get_replacements(generalize)
             if taux_candidates:
@@ -85,8 +86,6 @@ def search_comparable_functions(
                     if taux_candidate not in t_candidates:
                         t_candidates.append(taux_candidate)
 
-        if not candidate_sol:
-            del candidate
     return sol_found
 
 
