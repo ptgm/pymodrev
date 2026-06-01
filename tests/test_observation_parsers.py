@@ -17,7 +17,7 @@ def test_lp_parser_steady_state(tmp_path):
     parser = get_observation_parser(str(lp_file))
     assert isinstance(parser, LPObservationParser)
     
-    obs = parser.read(str(lp_file), None)
+    obs = parser.read(str(lp_file), SteadyUpdater())
     assert obs.experiments == {"p1"}
     assert len(obs.data) == 2
     assert ("p1", None, "node1", 0) in obs.data

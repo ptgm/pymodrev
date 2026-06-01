@@ -119,7 +119,7 @@ class Updater(ABC):
                             res, opt = Updater.parse_cc_model(model)
                             result.append(res)
                             optimization = opt
-                            if config.solutions == 1 or config.task == 'c':
+                            if config.solutions == 1:
                                 break
                 else:
                     optimization = -1
