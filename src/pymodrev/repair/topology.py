@@ -316,10 +316,9 @@ def repair_node_consistency_functions(
             # removed or added, it means that the function was changed to the
             # bottom function, and it's not repairable
             return False
-
-        logger.debug(f"Searching for non-comparable functions for node {inconsistent_node.identifier}")
-
+        
         # Case of double inconsistency
+        logger.debug(f"Searching for non-comparable functions for node {inconsistent_node.identifier}")
         sol_found = search_non_comparable_functions(network, observation_set, inconsistency,
                                                     inconsistent_node,
                                                     flipped_edges, added_edges,
@@ -327,10 +326,18 @@ def repair_node_consistency_functions(
 
         logger.debug(f"End searching for non-comparable functions for node {inconsistent_node.identifier}")
 
-    else:
-        logger.debug(f"Searching for comparable functions for node {inconsistent_node.identifier}")
+    elif config.force_optimum:
+        # Case user configuration force-optimum = True
+        logger.debug(f"Searching for non-comparable functions for node {inconsistent_node.identifier}")
+        sol_found = search_non_comparable_functions(network, observation_set, inconsistency,
+                                               inconsistent_node,
+                                               flipped_edges, added_edges,
+                                               removed_edges)
+        logger.debug(f"End searching for non-comparable functions for node {inconsistent_node.identifier}")
 
+    else:
         # Case of single inconsistency
+        logger.debug(f"Searching for comparable functions for node {inconsistent_node.identifier}")
         sol_found = search_comparable_functions(
             network, observation_set, inconsistency, inconsistent_node, flipped_edges,
             added_edges, removed_edges,
