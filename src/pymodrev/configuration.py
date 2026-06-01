@@ -52,7 +52,6 @@ class Configuration:
     exact_middle_function_determination: bool = True
     ignore_warnings: bool = False
     force_optimum: bool = False
-    show_all_functions: bool = True # Show all function repairs for a given node
     check_consistency: bool = False  # Just check the consistency of the model and return
     fixed_nodes = ""  # List of node ids not to repair
     fixed_edges = ""  # List of edge ids not to repair

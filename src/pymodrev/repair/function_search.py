@@ -78,23 +78,15 @@ def search_comparable_functions(
             function_repaired = True
             sol_found = True
             repaired_function_level = candidate.distance_from_original
-
-            if not config.show_all_functions:
-                break
-
-        taux_candidates = candidate.pfh_get_replacements(generalize)
-        if taux_candidates:
-            for taux_candidate in taux_candidates:
-                if taux_candidate not in t_candidates:
-                    t_candidates.append(taux_candidate)
+        else:
+            taux_candidates = candidate.pfh_get_replacements(generalize)
+            if taux_candidates:
+                for taux_candidate in taux_candidates:
+                    if taux_candidate not in t_candidates:
+                        t_candidates.append(taux_candidate)
 
         if not candidate_sol:
             del candidate
-    if not sol_found and config.force_optimum:
-        return search_non_comparable_functions(network, observation_set, inconsistency,
-                                               inconsistent_node,
-                                               flipped_edges, added_edges,
-                                               removed_edges)
     return sol_found
 
 
