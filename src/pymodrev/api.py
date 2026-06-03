@@ -121,8 +121,29 @@ def _add_observation_value(
     observation.add_data(exp_id, time, node_id, int(value))
 
 
-def add_obs(name: str, data: Mapping, updater_type: str) -> None:
-    """Create and register an observation from a dictionary."""
+def add_single_state_obs(name: str, data: Mapping[str, int], updater_type: str) -> None:
+    """Register a single-state observation from a dictionary of nodes and their values."""
+    if updater_type not in ("steady", "notsteady"):
+        raise ValueError("updater_type must be 'steady' or 'notsteady'")
+    observation = _build_observation_from_data(name, data, updater_type)
+    global _OBSERVATION_SET
+    _OBSERVATION_SET.add_observation(observation)
+
+
+def add_timeseries_obs(name: str, data: Mapping[str|int, Mapping[str, int]], updater_type: str) -> None:
+    """Register a time-series observation from a dictionary of time points to node-value mappings."""
+    if updater_type not in ("sync", "async", "complete"):
+        raise ValueError("updater_type must be 'sync', 'async', or 'complete'")
+    observation = _build_observation_from_data(name, data, updater_type)
+    global _OBSERVATION_SET
+    _OBSERVATION_SET.add_observation(observation)
+
+
+def add_reachability_obs(name: str, data_init: Mapping[str, int], data_final: Mapping[str, int], updater_type: str) -> None:
+    """Register a reachability observation from two dictionaries of nodes and their values."""
+    if updater_type not in ("reachsync", "reachasync"):
+        raise ValueError("updater_type must be 'reachsync' or 'reachasync'")
+    data = {"init": data_init, "final": data_final}
     observation = _build_observation_from_data(name, data, updater_type)
     global _OBSERVATION_SET
     _OBSERVATION_SET.add_observation(observation)
