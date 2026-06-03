@@ -2,9 +2,12 @@
 
 from pymodrev.api import (
     clear_obs,
-    add_single_state_obs,
-    add_timeseries_obs,
-    add_reachability_obs,
+    obs_steady,
+    obs_notsteady,
+    obs_sync_ts,
+    obs_async_ts,
+    obs_sync_reach,
+    obs_async_reach,
     model_from_dict,
     model_from_file,
     is_consistent,
@@ -21,9 +24,12 @@ from pymodrev.network.observation_set import ObservationSet
 
 __all__ = [
     "clear_obs",
-    "add_single_state_obs",
-    "add_timeseries_obs",
-    "add_reachability_obs",
+    "obs_steady",
+    "obs_notsteady",
+    "obs_sync_ts",
+    "obs_async_ts",
+    "obs_sync_reach",
+    "obs_async_reach",
     "model_from_dict",
     "model_from_file",
     "is_consistent",
