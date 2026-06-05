@@ -86,32 +86,8 @@ def model_from_file(filepath: os.PathLike[str] | str) -> Model:
     return network
 
 
-def _build_observation_from_data(name: str, data: Mapping, updater_type: str) -> Observation:
-    updater = get_updater(updater_type)
-    observation = Observation(updater)
-
-    if data and all(isinstance(value, Mapping) for value in data.values()):
-        for time, values in data.items():
-            try:
-                time_value = int(time)
-            except (TypeError, ValueError):
-                raise ValueError(f"Invalid observation time '{time}' for '{name}'")
-            for node_id, value in values.items():
-                _add_observation_value(observation, name, time_value, str(node_id), value)
-    else:
-        for node_id, value in data.items():
-            _add_observation_value(observation, name, None, str(node_id), value)
-
-    return observation
-
-
-def _add_observation_value(
-    observation: Observation,
-    exp_id: str,
-    time,
-    node_id: str,
-    value,
-) -> None:
+def _add_observation_value(observation: Observation, exp_id: str,
+    time, node_id: str, value) -> None:
     if value is None:
         return
     if isinstance(value, str):
@@ -120,44 +96,67 @@ def _add_observation_value(
             return
     observation.add_data(exp_id, time, node_id, int(value))
 
+def _add_single_state_obs(name, data: Mapping[str, int], updater_type: str) -> Observation:
+    updater = get_updater(updater_type)
+    observation = Observation(updater)
+    for node_id, value in data.items():
+        _add_observation_value(observation, name, None, str(node_id), value)
+    return observation
 
-def obs_steady(name: str, data: Mapping[str, int]) -> None:
+def _add_multiple_state_obs(name: str, data: Mapping, updater_type: str) -> Observation:
+    updater = get_updater(updater_type)
+    observation = Observation(updater)
+
+    if data and all(isinstance(value, Mapping) for value in data.values()):
+        for time, values in data.items():
+            if not isinstance(time, int) and (not isinstance(time, str) or time not in {"init", "final"}):
+                raise ValueError(f"Invalid observation time '{time}' for '{name}'")
+            for node_id, value in values.items():
+                _add_observation_value(observation, name, time, str(node_id), value)
+    else:
+        for node_id, value in data.items():
+            _add_observation_value(observation, name, None, str(node_id), value)
+
+    return observation
+
+
+def obs_steady(name: str, state: Mapping[str, int]) -> None:
     """Register a named steady-state observation from a dictionary of nodes and their values."""
-    observation = _build_observation_from_data(name, data, "steady")
+    observation = _add_single_state_obs(name, state, "steady")
     global _OBSERVATION_SET
     _OBSERVATION_SET.add_observation(observation)
 
-def obs_notsteady(name: str, data: Mapping[str, int]) -> None:
+def obs_notsteady(name: str, state: Mapping[str, int]) -> None:
     """Register a named notsteady-state observation from a dictionary of nodes and their values."""
-    observation = _build_observation_from_data(name, data, "notsteady")
+    observation = _add_single_state_obs(name, state, "notsteady")
     global _OBSERVATION_SET
     _OBSERVATION_SET.add_observation(observation)
 
 
-def obs_sync_ts(name: str, data: Mapping[str|int, Mapping[str, int]], updater_type: str) -> None:
+def obs_sync_ts(name: str, data: Mapping[str|int, Mapping[str, int]]) -> None:
     """Register a named synchronous time-series observation from a dictionary of time points to node-value mappings."""
-    observation = _build_observation_from_data(name, data, "sync")
+    observation = _add_multiple_state_obs(name, data, "sync")
     global _OBSERVATION_SET
     _OBSERVATION_SET.add_observation(observation)
 
-def obs_async_ts(name: str, data: Mapping[str|int, Mapping[str, int]], updater_type: str) -> None:
+def obs_async_ts(name: str, data: Mapping[str|int, Mapping[str, int]]) -> None:
     """Register a named asynchronous time-series observation from a dictionary of time points to node-value mappings."""
-    observation = _build_observation_from_data(name, data, "async")
+    observation = _add_multiple_state_obs(name, data, "async")
     global _OBSERVATION_SET
     _OBSERVATION_SET.add_observation(observation)
 
 
-def obs_sync_reach(name: str, data_init: Mapping[str, int], data_final: Mapping[str, int], updater_type: str) -> None:
+def obs_sync_reach(name: str, data_init: Mapping[str, int], data_final: Mapping[str, int]) -> None:
     """Register a named synchronous reachability observation from two dictionaries of nodes and their values."""
     data = {"init": data_init, "final": data_final}
-    observation = _build_observation_from_data(name, data, "reachsync")
+    observation = _add_multiple_state_obs(name, data, "reachsync")
     global _OBSERVATION_SET
     _OBSERVATION_SET.add_observation(observation)
 
-def obs_async_reach(name: str, data_init: Mapping[str, int], data_final: Mapping[str, int], updater_type: str) -> None:
+def obs_async_reach(name: str, data_init: Mapping[str, int], data_final: Mapping[str, int]) -> None:
     """Register a named asynchronous reachability observation from two dictionaries of nodes and their values."""
     data = {"init": data_init, "final": data_final}
-    observation = _build_observation_from_data(name, data, "reachasync")
+    observation = _add_multiple_state_obs(name, data, "reachasync")
     global _OBSERVATION_SET
     _OBSERVATION_SET.add_observation(observation)
 
