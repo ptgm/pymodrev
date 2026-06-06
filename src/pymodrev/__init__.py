@@ -11,8 +11,7 @@ from pymodrev.api import (
     model_from_dict,
     model_from_file,
     is_consistent,
-    get_repairs,
-    apply_repairs,
+    repair,
     model_to_file,
 )
 from pymodrev.network.edge import Edge
@@ -33,8 +32,7 @@ __all__ = [
     "model_from_dict",
     "model_from_file",
     "is_consistent",
-    "get_repairs",
-    "apply_repairs",
+    "repair",
     "model_to_file",
 
     "Edge",

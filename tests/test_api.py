@@ -123,39 +123,37 @@ def test_obs_async_reach_registers_valid_reachability_observation():
     assert set(res) >= {"consistent", "inconsistencies"}
 
 
-def test_get_repairs_requires_is_consistent_first():
+def test_repair_requires_is_consistent_first_when_no_obs_names():
     model = mrev.model_from_dict({"A": "A"})
+
     with pytest.raises(ValueError, match=r"is_consistent\(\) method must be run before"):
-        mrev.get_repairs(model)
+        mrev.repair(model)
 
 
-def test_get_repairs_raises_on_already_consistent_model():
+def test_repair_returns_empty_for_consistent_model_after_is_consistent():
     model = mrev.model_from_dict({"A": "A"})
     mrev.obs_steady("obs1", {"A": 0})
     mrev.is_consistent(model, ["obs1"])
 
-    with pytest.raises(ValueError, match="Model is already consistent; no repairs to return"):
-        mrev.get_repairs(model)
+    repaired_models, details = mrev.repair(model)
+    assert repaired_models == []
+    assert details == {}
 
 
-def test_apply_repairs_requires_call_order():
+def test_repair_accepts_single_observation_name_as_string():
+    model = mrev.model_from_dict({"A": "A"})
+    mrev.obs_steady("obs1", {"A": 1})
+
+    repaired_models, details = mrev.repair(model, "obs1")
+    assert repaired_models == []
+    assert details == {}
+
+
+def test_repair_returns_repaired_model_variants():
     model = mrev.model_from_dict({"A": "A"})
     mrev.obs_notsteady("obs1", {"A": 0})
 
-    with pytest.raises(ValueError, match=r"is_consistent\(\) method must be run before"):
-        mrev.apply_repairs(model)
-
-    mrev.is_consistent(model, ["obs1"])
-    with pytest.raises(ValueError, match=r"get_repairs\(\) must be run before"):
-        mrev.apply_repairs(model)
-
-
-def test_apply_repairs_returns_repaired_model_variants():
-    model = mrev.model_from_dict({"A": "A"})
-    mrev.obs_notsteady("obs1", {"A": 0})
-    mrev.is_consistent(model, ["obs1"])
-    mrev.get_repairs(model)
-
-    repaired_models = mrev.apply_repairs(model)
+    repaired_models, details = mrev.repair(model, ["obs1"])
     assert len(repaired_models) >= 1
     assert all(repaired is not model for repaired in repaired_models)
+    assert isinstance(details, dict)

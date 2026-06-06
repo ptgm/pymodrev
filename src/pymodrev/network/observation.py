@@ -40,6 +40,12 @@ class Observation:
         self.experiments.add(exp_id)
         self.data.append((exp_id, time, node_id, value))
 
+    def get_nodes(self) -> Set[str]:
+        """
+        Returns the set of nodes observed in this observation.
+        """
+        return set(node_id for _, _, node_id, _ in self.data)
+
     def to_asp_facts(self, dimension: int) -> str:
         """
         Generates ASP facts from the internal observation data.

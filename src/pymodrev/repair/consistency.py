@@ -7,6 +7,7 @@ is consistent with a given labeling/profile.
 
 import logging
 import math
+import sys
 from bitarray import bitarray
 from typing import List, Dict, Tuple
 
@@ -25,12 +26,12 @@ def check_consistency(network: Model, observation_set: ObservationSet) -> Tuple[
     """
     Check network consistency using ASP solver or alternative method.
     """
-    result = []
-    optimization = -2
-    if config.check_asp:
-        result, optimization = Updater.check_consistency(network, observation_set)
-    else:
-        pass
+    for name,observation in observation_set.observations_dictionary.items():
+        for node in observation.get_nodes():
+            if node not in network.nodes:
+                logger.warning(f"Observation {name} contains node {node} which is not in the network.")
+                sys.exit(-1)
+    result, optimization = Updater.check_consistency(network, observation_set)
     return result, optimization
 
 

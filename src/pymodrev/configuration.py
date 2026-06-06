@@ -43,7 +43,6 @@ class Configuration:
     task: str = 'r' # default is show the repairs
     format: str = 'h' # default is human-readable format
     debug: bool = False
-    check_asp: bool = True  # Use ASP consistency check program
     function_asp: bool = True # Use ASP function program
     solutions: int = 3 # Number/Type of solutions presented (default=3)
     labelling: bool = False
@@ -55,6 +54,7 @@ class Configuration:
     check_consistency: bool = False  # Just check the consistency of the model and return
     fixed_nodes = ""  # List of node ids not to repair
     fixed_edges = ""  # List of edge ids not to repair
+    input_filename: str = ""  # Input file for the model
 
     def __getitem__(self, key):
         return getattr(self, key)

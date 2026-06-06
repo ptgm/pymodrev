@@ -24,7 +24,6 @@ class Model:
         self._nodes: Dict[str, Node] = {}  # {'node_id': node, ...}
         self._graph = {}  # {'node_id': [edge_1, edge_2, ...], ...}
         self._regulators = {}  # Reverse of graph: {'node_id': ['reg_id', ...], ...}
-        self._input_file_network = ''
 
     @property
     def nodes(self) -> Dict[str, Node]:
@@ -45,15 +44,6 @@ class Model:
     def regulators(self) -> Dict[str, List[str]]:
         """Returns the regulators of each node in the model."""
         return self._regulators
-
-    @property
-    def input_file_network(self) -> str:
-        """Returns the input file associated with the model."""
-        return self._input_file_network
-
-    @input_file_network.setter
-    def input_file_network(self, value: str):
-        self._input_file_network = value
 
     def get_node(self, node_id: str) -> Node | None:
         """
@@ -118,3 +108,10 @@ class Model:
         """
         from pymodrev.parsers.parser_asp import ASPParser
         return ASPParser.to_asp_facts(self)
+
+    def __eq__(self, other: object) -> bool:
+        """
+        Checks if two models are equal based on their nodes and edges.
+        """
+        return isinstance(other, Model) and self.nodes == other.nodes and \
+               self.graph == other.graph and self.regulators == other.regulators

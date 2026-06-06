@@ -77,7 +77,7 @@ Example: --fixed-edges A,B C;D E:F"""),
     args = arg_parser.parse_args()
 
     # Apply arguments to config and network
-    network.input_file_network = args.model
+    config.input_filename = args.model
     config.task = args.task
     config.force_optimum = args.exhaustive_search
     config.solutions = args.solutions
@@ -116,8 +116,8 @@ def main():
     
     # Delegate parsing to the correct reader based on file extension
     try:
-        parser = get_parser(network.input_file_network)
-        parse = parser.read(network, network.input_file_network)
+        parser = get_parser(config.input_filename)
+        parse = parser.read(network, config.input_filename)
         # Mark nodes and edges as fixed (not to be repaired)
         if config.fixed_nodes:
             for node_id in config.fixed_nodes:
@@ -176,7 +176,7 @@ def main():
             logger.info("No repaired models to generate.")
         else:
             padding = len(str(total_models))
-            prefix, ext = os.path.splitext(network.input_file_network)
+            prefix, ext = os.path.splitext(config.input_filename)
             for i, (repair_sol, node_repair_map) in enumerate(all_models_to_save):
                 newNetwork = copy.deepcopy(network)
                 apply_repair(newNetwork, repair_sol, node_repair_map)

@@ -34,7 +34,7 @@ class Function:
         self._regulators = []
         # {1: ['node_1', 'node_2'], 2: ['node_1', 'node_3'], 3: ['node_3']}
         self._regulators_by_term = {}
-        self._pfh_function = None
+        self._pfh_function: PFHFunction | None = None
 
     @property
     def node_id(self) -> str:
@@ -78,7 +78,7 @@ class Function:
         self._regulators_by_term = value
 
     @property
-    def pfh_function(self) -> PFHFunction:
+    def pfh_function(self) -> PFHFunction | None:
         """Returns the PyFunctionhood function representation."""
         return self._pfh_function
 
@@ -390,7 +390,7 @@ class Function:
         """
         return self.pfh_function.level_cmp_list(other)
 
-    def pfh_get_replacements(self, generalize: bool) -> List:
+    def pfh_get_replacements(self, generalize: bool) -> List[Function]:
         """
         Gets replacement functions by generalizing or specializing.
         """
@@ -399,7 +399,7 @@ class Function:
         return self.pfh_get_parents() if generalize \
             else self.pfh_get_children()
 
-    def get_hasse_relationships(self, relationship_type: str) -> List:
+    def get_hasse_relationships(self, relationship_type: str) -> set[PFHFunction]:
         """
         Helper function to get parent/child relationships from Hasse diagram.
         """
@@ -439,7 +439,7 @@ class Function:
             for parent in self.get_hasse_relationships('parents')
         ]
 
-    def pfh_get_children(self) -> List:
+    def pfh_get_children(self) -> List[Function]:
         """
         Get child functions in the Hasse diagram.
         """

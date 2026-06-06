@@ -83,7 +83,7 @@ def search_comparable_functions(
             taux_candidates = candidate.pfh_get_replacements(generalize)
             if taux_candidates:
                 for taux_candidate in taux_candidates:
-                    if taux_candidate not in t_candidates:
+                    if taux_candidate not in t_candidates: # FIXME check hash and equals in function
                         t_candidates.append(taux_candidate)
 
     return sol_found
