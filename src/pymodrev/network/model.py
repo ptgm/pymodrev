@@ -115,3 +115,9 @@ class Model:
         """
         return isinstance(other, Model) and self.nodes == other.nodes and \
                self.graph == other.graph and self.regulators == other.regulators
+    
+    def __hash__(self) -> int:
+        """Hash function for the Model based on its nodes and edges."""
+        return hash((len(self.nodes),
+                     sum(len(edges) for edges in self.graph.values()),
+                     len(self.regulators)))

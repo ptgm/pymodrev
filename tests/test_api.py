@@ -5,13 +5,6 @@ from pymodrev.configuration import config
 from pymodrev.network.exceptions import EdgeNotFoundError
 
 
-@pytest.fixture(autouse=True)
-def clean_observations():
-    mrev.clear_obs()
-    yield
-    mrev.clear_obs()
-
-
 def test_model_from_dict_simplifies_expression_and_builds_edges():
     model = mrev.model_from_dict({"A": "B | (B & C)", "B": "A", "C": "C"})
 

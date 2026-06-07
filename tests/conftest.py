@@ -11,6 +11,7 @@ import os
 import re
 from pathlib import Path
 import pytest
+import pymodrev as mrev
 
 venv_dir = os.environ.get("VIRTUAL_ENV")
 
@@ -32,6 +33,13 @@ def check_package_resolvable(package_name: str):
 @pytest.fixture(scope="session")
 def venv_python():
     return str(Path(venv_dir) / "bin" / "python3")
+
+
+@pytest.fixture(autouse=True)
+def clean_observations():
+    mrev.clear_obs()
+    yield
+    mrev.clear_obs()
 
 def pytest_sessionstart(session):
     if not venv_dir:
