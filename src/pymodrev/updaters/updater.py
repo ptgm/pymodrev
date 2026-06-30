@@ -83,7 +83,7 @@ class Updater(ABC):
         """
 
     @staticmethod
-    def check_consistency(network: Model, observation_set: 'ObservationSet') -> Tuple[List, int]:
+    def check_consistency(network: Model, observation_set: 'ObservationSet') -> Tuple[List[InconsistencySolution], int]:
         """
         This method loads the necessary rules, including base rules and network
         observation files, and applies consistency checks to the network. It
@@ -108,6 +108,7 @@ class Updater(ABC):
             # Generate ASP facts from the internal Model representation
             asp_facts = network.to_asp_facts()
             ctl.add("base", [], asp_facts)
+
             for obs in observation_set.observations:
                 ctl.add("base", [], obs.to_asp_facts(network.dimension))
 

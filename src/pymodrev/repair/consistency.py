@@ -29,7 +29,7 @@ def check_consistency(network: Model, observation_set: ObservationSet) -> Tuple[
     for name,observation in observation_set.observations_dictionary.items():
         for node in observation.get_nodes():
             if node not in network.nodes:
-                logger.warning(f"Observation {name} contains node {node} which is not in the network.")
+                logger.warning(f"Observation {name} contains node {node} which is not in the model.")
                 sys.exit(-1)
     result, optimization = Updater.check_consistency(network, observation_set)
     return result, optimization

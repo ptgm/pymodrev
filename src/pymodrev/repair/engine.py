@@ -11,7 +11,6 @@ from typing import List, Tuple
 from pymodrev.network.inconsistency_solution import InconsistencySolution
 from pymodrev.network.model import Model
 from pymodrev.network.observation_set import ObservationSet
-from pymodrev.repair.consistency import check_consistency
 from pymodrev.repair.topology import repair_inconsistencies
 from pymodrev.configuration import config
 

@@ -118,7 +118,7 @@ class InconsistencySolution:
         """
         return self.inconsistent_nodes[node_id]
 
-    def compare_repairs(self, solution: "InconsistencySolution") -> int:
+    def compare_repairs(self, solution: InconsistencySolution) -> int:
         """
         Compares the current solution with another solution to determine which
         is better.

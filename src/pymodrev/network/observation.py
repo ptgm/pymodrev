@@ -5,8 +5,6 @@ via the command line. It also performs a basic check to ensure the provided
 observation file exists.
 """
 
-import os
-from pymodrev.updaters.async_updater import AsyncUpdater
 from pymodrev.updaters.reachsync_updater import ReachsyncUpdater
 from pymodrev.updaters.reachasync_updater import ReachasyncUpdater
 from pymodrev.updaters.updater import Updater
@@ -69,7 +67,7 @@ class Observation:
 
         if self.updater.get_type() in [ReachasyncUpdater.get_type(), ReachsyncUpdater.get_type()]:
             for exp_id in self.experiments:
-                facts.append(f"max_time({asp_quote(exp_id)},{2**dimension - 1}).")
+                facts.append(f"max_time({asp_quote(exp_id)},{2*dimension}).")
 
         return "\n".join(facts) + "\n"
 
