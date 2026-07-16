@@ -16,6 +16,11 @@ vlabel(P,T+1,V,S) :- not update(P,T,V), vlabel(P,T,V,S), time(P,T+1), exp(P,asyn
 topologicalerror(V) :- time(P1,T1), time(P2,T2), T1 != T2, time(P1,T1+1), time(P2,T2+1), exp(P1,async), exp(P2,async), update(P1, T1, V), update(P2, T2, V), {vlabel(P1,T1,V1,S1) : vlabel(P2,T2,V1,S2), functionAnd(V,Id, V1), S1!=S2}0, vlabel(P1,T1+1,V,S3), vlabel(P2,T2+1,V,S4), S3 != S4, not input(V).
 topologicalerror(V) :- time(P1,T), time(P2,T), time(P1,T+1), time(P2,T+1), update(P1, T, V), update(P2, T, V), exp(P1,async), exp(P2,async), P1 != P2, {vlabel(P1,T,V1,S1) : vlabel(P2,T,V1,S2), S1!=S2,  functionAnd(V,Id, V1)}0, vlabel(P1,T+1,V,S3), vlabel(P2,T+1,V,S4), S3 != S4, not input(V).
 
+% to avoid symmetries, if there are two consecutive updated nodes such that no one is a regulator of the other
+% then we say that the smallest one (or the one that comes first alphaetically) must be updated first
+:- update(P,T,V1), update(P,T+1,V2), not edge(V1,V2,_), not edge(V2,V1,_), V1 > V2, not repair(V1), not repair(V2).
+
+
 repair(V) :- topologicalerror(V).
 
 #minimize {1@2,top,V : topologicalerror(V)}.
