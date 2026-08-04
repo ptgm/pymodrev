@@ -17,8 +17,7 @@ class ObservationParser(ABC):
         """
         pass
 
-    def read_table(self, table: List, updater: Updater):
-        obs = Observation(updater)
+    def read_table(self, table: List, obs: Observation) -> Observation:
         header = table[0]
         
         # Detect type:
@@ -34,6 +33,9 @@ class ObservationParser(ABC):
             if is_ts:
                 time = str(row[1])
                 values = row[2:]
+                if obs.updater.get_type() in ('reachasync', 'reachsync') and time not in ('init','final') \
+                    or (obs.updater.get_type() in ('async', 'sync', 'complete') and not time.isdigit()):
+                    raise ValueError(f"Updater '{obs.updater.get_type()}' with invalid time value.")
             else:
                 time = None
                 values = row[1:]
@@ -91,7 +93,7 @@ class CSVObservationParser(ObservationParser):
             with open(filepath, 'r', encoding='utf-8') as f:
                 reader = csv.reader(f)
 
-                return self.read_table(list(reader), updater)
+                return self.read_table(list(reader), obs)
         except Exception as e:
             raise ValueError(f"Error parsing CSV observation file {filepath}: {e}")
         return obs
@@ -104,7 +106,6 @@ class ExcelObservationParser(ObservationParser):
     def read(self, filepath: str, updater: Updater) -> Observation:
         obs = Observation(updater)
         ext = os.path.splitext(filepath)[1].lower()
-        
         try:
             rows = []
             if ext == '.xlsx':
@@ -120,7 +121,7 @@ class ExcelObservationParser(ObservationParser):
                 for i in range(ws.nrows):
                     rows.append(ws.row_values(i))
             
-            return self.read_table(rows, updater)
+            return self.read_table(rows, obs)
         except Exception as e:
             raise ValueError(f"Error parsing Excel observation file {filepath}: {e}")
         return obs
