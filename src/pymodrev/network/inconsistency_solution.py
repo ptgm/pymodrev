@@ -5,6 +5,7 @@ The class provides methods to manage and analyze inconsistent nodes, repair
 sets, and other related properties.
 """
 
+from __future__ import annotations
 import json
 from typing import Dict
 from pymodrev.network.model import Model

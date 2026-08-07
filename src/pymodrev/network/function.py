@@ -390,7 +390,7 @@ class Function:
         """
         return self.pfh_function.level_cmp_list(other)
 
-    def pfh_get_replacements(self, generalize: bool) -> List[Function]:
+    def pfh_get_replacements(self, generalize: bool) -> List[PFHFunction]:
         """
         Gets replacement functions by generalizing or specializing.
         """
@@ -439,7 +439,7 @@ class Function:
             for parent in self.get_hasse_relationships('parents')
         ]
 
-    def pfh_get_children(self) -> List[Function]:
+    def pfh_get_children(self) -> List[PFHFunction]:
         """
         Get child functions in the Hasse diagram.
         """
