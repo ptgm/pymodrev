@@ -6,7 +6,8 @@ replacement functions that can resolve inconsistencies in the network.
 """
 
 import logging
-from typing import List
+from collections import deque
+from typing import Dict, List, Optional, Tuple
 
 from pymodrev.network.inconsistency_solution import InconsistencySolution
 from pymodrev.network.inconsistent_node import InconsistentNode
@@ -25,6 +26,51 @@ from pymodrev.configuration import config, Inconsistencies
 logger = logging.getLogger(__name__)
 
 
+def _function_eval_key(network: Model, function: Function) -> Tuple:
+    """
+    Build a stable key for caching function consistency evaluations.
+
+    The key includes the function shape and the current signs of all edges
+    from its regulators to the target node, because edge signs influence
+    consistency checks.
+    """
+    edge_signature = []
+    for regulator in function.regulators:
+        edge = network.get_edge(regulator, function.node_id)
+        edge_signature.append((regulator, edge.sign if edge is not None else None))
+    return function.node_id, hash(function), tuple(edge_signature)
+
+
+def _cached_is_func_consistent(
+        network: Model,
+        observation_set: ObservationSet,
+        inconsistency: InconsistencySolution,
+        function: Function,
+        consistency_cache: Optional[Dict[Tuple, bool]]) -> bool:
+    if consistency_cache is None:
+        return is_func_consistent_with_label(network, observation_set, inconsistency, function)
+    key = ("is", _function_eval_key(network, function))
+    if key not in consistency_cache:
+        consistency_cache[key] = is_func_consistent_with_label(
+            network, observation_set, inconsistency, function)
+    return consistency_cache[key]
+
+
+def _cached_n_func_inconsistent(
+        network: Model,
+        observation_set: ObservationSet,
+        inconsistency: InconsistencySolution,
+        function: Function,
+        consistency_cache: Optional[Dict[Tuple, int]]) -> int:
+    if consistency_cache is None:
+        return n_func_inconsistent_with_label(network, observation_set, inconsistency, function)
+    key = ("n", _function_eval_key(network, function))
+    if key not in consistency_cache:
+        consistency_cache[key] = n_func_inconsistent_with_label(
+            network, observation_set, inconsistency, function)
+    return consistency_cache[key]
+
+
 def search_comparable_functions(
         network: Model,
         observation_set: ObservationSet,
@@ -33,7 +79,8 @@ def search_comparable_functions(
         flipped_edges: List[Edge],
         added_edges: List[Edge],
         removed_edges: List[Edge],
-        generalize: bool) -> bool:
+    generalize: bool,
+    consistency_cache: Optional[Dict[Tuple, int | bool]] = None) -> bool:
     """
     Searches for comparable functions that can repair the inconsistency of a
     node. It evaluates potential replacement functions and applies the
@@ -55,15 +102,26 @@ def search_comparable_functions(
     # Get the replacement candidates
     function_repaired = False
     repaired_function_level = -1
-    t_candidates = original_f.pfh_get_replacements(generalize)
+    t_candidates = deque(original_f.pfh_get_replacements(generalize))
+    queued_candidates = set(t_candidates)
+    tested_candidates = set()
 
     while t_candidates:
-        candidate = t_candidates.pop(0)
+        candidate = t_candidates.popleft()
+        queued_candidates.discard(candidate)
+        if candidate in tested_candidates:
+            continue
+        tested_candidates.add(candidate)
         # Already found a good function, but will still search for more equally good
         if function_repaired and candidate.distance_from_original > \
                 repaired_function_level:
             continue
-        if is_func_consistent_with_label(network, observation_set, inconsistency, candidate):
+        if _cached_is_func_consistent(
+            network,
+            observation_set,
+            inconsistency,
+            candidate,
+            consistency_cache):
             repair_set = RepairSet()
             repair_set.add_repaired_function(candidate)
             for edge in flipped_edges:
@@ -83,8 +141,9 @@ def search_comparable_functions(
             taux_candidates = candidate.pfh_get_replacements(generalize)
             if taux_candidates:
                 for taux_candidate in taux_candidates:
-                    if taux_candidate not in t_candidates: # FIXME check hash and equals in function
+                    if taux_candidate not in queued_candidates and taux_candidate not in tested_candidates:
                         t_candidates.append(taux_candidate)
+                        queued_candidates.add(taux_candidate)
 
     return sol_found
 
@@ -96,14 +155,19 @@ def search_non_comparable_functions(
         inconsistent_node: InconsistentNode,
         flipped_edges: List[Edge],
         added_edges: List[Edge],
-        removed_edges: List[Edge]) -> bool:
+    removed_edges: List[Edge],
+    consistency_cache: Optional[Dict[Tuple, int | bool]] = None) -> bool:
     """
     Searches for non-comparable functions to resolve inconsistencies in the
     given network. Attempts to replace an inconsistent function with a
     consistent alternative.
     """
     sol_found, function_repaired = False, False
-    candidates, consistent_functions = [], []
+    candidates = deque()
+    queued_candidates = set()
+    tested_candidates = set()
+    consistent_functions = []
+    consistent_functions_set = set()
     best_below, best_above, equal_level = [], [], []
     level_compare = config.compare_level_function
 
@@ -138,26 +202,54 @@ def search_non_comparable_functions(
                 cindex += 1
 
     candidates.append(new_f)
+    queued_candidates.add(new_f)
 
     logger.debug(f"Finding functions for double inconsistency in {original_f.print_function(network=network)}")
 
     counter = 0
     while candidates:
         counter += 1
-        candidate = candidates.pop(0)
+        candidate = candidates.popleft()
+        queued_candidates.discard(candidate)
         is_consistent = False
 
-        if candidate not in consistent_functions:
+        # Skip candidates that were already evaluated.
+        if candidate in tested_candidates:
             continue
+        tested_candidates.add(candidate)
 
-        inc_type = n_func_inconsistent_with_label(network, observation_set, inconsistency,
-                                                  candidate)
+        inc_type = _cached_n_func_inconsistent(
+            network,
+            observation_set,
+            inconsistency,
+            candidate,
+            consistency_cache,
+        )
         if inc_type == Inconsistencies.CONSISTENT.value:
             is_consistent = True
-            consistent_functions.append(candidate)
+            if candidate not in consistent_functions_set:
+                consistent_functions.append(candidate)
+                consistent_functions_set.add(candidate)
             if not function_repaired:
                 logger.debug(f"Found first function at level {candidate.distance_from_original} {candidate.print_function(network=network)}")
             function_repaired, sol_found = True, True
+
+            # Mode 1 only needs the first valid repair candidate.
+            # Short-circuiting here avoids unnecessary exploration aimed at
+            # collecting equivalent/alternative candidates for richer modes.
+            if config.solutions == 1:
+                repair_set = RepairSet()
+                repair_set.add_repaired_function(candidate)
+                for edge in flipped_edges:
+                    repair_set.add_flipped_edge(edge)
+                for edge in removed_edges:
+                    repair_set.remove_edge(edge)
+                for edge in added_edges:
+                    repair_set.add_edge(edge)
+                inconsistency.add_repair_set(inconsistent_node.identifier,
+                                             repair_set)
+                return True
+
             if level_compare:
                 cmp = original_f.compare_level(candidate)
                 if cmp == 0:
@@ -222,8 +314,9 @@ def search_non_comparable_functions(
         new_candidates = candidate.get_replacements(is_generalize)
         for new_candidate in new_candidates:
             new_candidate.son_consistent = is_consistent
-            if new_candidate not in candidates:
+            if new_candidate not in queued_candidates and new_candidate not in tested_candidates:
                 candidates.append(new_candidate)
+                queued_candidates.add(new_candidate)
         if not is_consistent:
             del candidate
 
