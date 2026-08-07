@@ -150,3 +150,35 @@ def test_repair_returns_repaired_model_variants():
     assert len(repaired_models) >= 1
     assert all(repaired is not model for repaired in repaired_models)
     assert isinstance(details, dict)
+
+
+def test_repair_recomputes_by_default_for_current_model():
+    mrev.clear_obs()
+    mrev.obs_steady("obs1", {"A": 1})
+
+    model_good = mrev.model_from_dict({"A": "A"})
+    model_bad = mrev.model_from_dict({"A": 0})
+
+    # Populate cache with a consistent result for a different model.
+    res = mrev.is_consistent(model_good, ["obs1"])
+    assert res.get("consistent") is True
+
+    # Default behavior must recompute consistency for model_bad and therefore
+    # match an explicit fresh call on the same observations.
+    repaired_models_default, details_default = mrev.repair(model_bad)
+    repaired_models_explicit, details_explicit = mrev.repair(model_bad, ["obs1"])
+
+    assert len(repaired_models_default) == len(repaired_models_explicit)
+    assert details_default == details_explicit
+
+
+def test_repair_repeated_calls_do_not_accumulate_state():
+    mrev.clear_obs()
+    mrev.obs_notsteady("obs1", {"A": 0})
+    model = mrev.model_from_dict({"A": "A"})
+
+    repaired_models_1, details_1 = mrev.repair(model, ["obs1"])
+    repaired_models_2, details_2 = mrev.repair(model, ["obs1"])
+
+    assert len(repaired_models_1) == len(repaired_models_2)
+    assert details_1 == details_2

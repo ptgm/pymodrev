@@ -199,29 +199,44 @@ def is_consistent(model: Model, observation_names: List[str] | str,
     return json.loads(consistency_to_str(inconsistencies, optimization))
 
 
-def repair(model: Model, obs_names: List[str] | str | None = None) -> Tuple[List[Model], dict]:
-    """Computes all possible repair solutions from the previous is_consistent()
-    call, applies the repairs, and returns the repaired model(s)."""
+def repair(
+    model: Model,
+    obs_names: List[str] | str | None = None,
+    use_consistency: bool = False,
+) -> Tuple[List[Model], dict]:
+    """Compute and apply repair solutions for a model.
+
+    By default this method recomputes consistency for the provided model
+    before searching for repairs. If ``use_consistency`` is True, it reuses the
+    cached inconsistency result from the previous ``is_consistent`` call.
+    """
     global _LAST_USED_OBSERVATION_NAMES, _LAST_INCONSISTENCIES, _LAST_OPTIMIZATION
-    if not obs_names: # default behavior. user called is_consistent() before
-        if not _LAST_USED_OBSERVATION_NAMES or not _LAST_INCONSISTENCIES or _LAST_OPTIMIZATION is None:
-            raise ValueError("is_consistent() method must be run before")
-        if _LAST_OPTIMIZATION == 0:
-            return [], {}
-        observation_set = _subset_observations(_LAST_USED_OBSERVATION_NAMES)
-    else: # user called repair() directly with explicit observation names
+
+    if obs_names is not None:
         if isinstance(obs_names, str):
             obs_names = [obs_names]
         _LAST_USED_OBSERVATION_NAMES = obs_names
-        observation_set = _subset_observations(_LAST_USED_OBSERVATION_NAMES)
+    elif not _LAST_USED_OBSERVATION_NAMES:
+        raise ValueError("is_consistent() method must be run before")
+
+    observation_set = _subset_observations(_LAST_USED_OBSERVATION_NAMES)
+
+    if use_consistency:
+        if _LAST_INCONSISTENCIES is None or _LAST_OPTIMIZATION is None:
+            raise ValueError("No previous consistency result available; run is_consistent() first")
+    else:
         _LAST_INCONSISTENCIES, _LAST_OPTIMIZATION = check_consistency(model, observation_set)
-        if _LAST_OPTIMIZATION == 0:
-            return [], {}
+
+    if _LAST_OPTIMIZATION == 0:
+        return [], {}
+
+    # model_revision mutates inconsistency objects while building repair sets.
+    # Keep cached results immutable across repeated repair() calls.
+    inconsistencies_for_repair = copy.deepcopy(_LAST_INCONSISTENCIES)
 
     config.task = 'r'
     config.format = 'j'
-    repairs, s = model_revision(model, observation_set, _LAST_INCONSISTENCIES, _LAST_OPTIMIZATION)
-
+    repairs, s = model_revision(model, observation_set, inconsistencies_for_repair, _LAST_OPTIMIZATION)
 
     repaired_models: list[Model] = []
     for repair_solution in repairs:
@@ -240,7 +255,7 @@ def repair(model: Model, obs_names: List[str] | str | None = None) -> Tuple[List
             _apply_repair_in_place(repaired_model, repair_solution, node_repair_map)
             repaired_models.append(repaired_model)
 
-    return repaired_models, json.loads(s)
+    return repaired_models, json.loads(s) if s else {}
 
 
 def model_to_file(model: Model, filepath: os.PathLike[str] | str) -> None:
