@@ -244,8 +244,12 @@ def repair(model: Model, obs_names: List[str] | str | None = None) -> Tuple[List
 
 
 def model_to_file(model: Model, filepath: os.PathLike[str] | str) -> None:
-    """Write a model to disk using the parser that matches the file extension."""
-    filename = os.fspath(filepath)
-    Path(filename).parent.mkdir(parents=True, exist_ok=True)
-    parser = get_parser(filename)
-    parser.write(model, filename)
+    """Write a model to disk."""
+    path = Path(filepath)
+    # Ensure the parent directory exists
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Remove the file if it already exists to avoid issues with overwriting
+    path.unlink(missing_ok=True)
+    # write the model to file
+    parser = get_parser(str(path))
+    parser.write(model, str(path))
