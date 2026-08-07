@@ -7,7 +7,7 @@ replacement functions that can resolve inconsistencies in the network.
 
 import logging
 from collections import deque
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from pymodrev.network.inconsistency_solution import InconsistencySolution
 from pymodrev.network.inconsistent_node import InconsistentNode
@@ -45,8 +45,8 @@ def _cached_is_func_consistent(
         network: Model,
         observation_set: ObservationSet,
         inconsistency: InconsistencySolution,
-        function: Function,
-        consistency_cache: Optional[Dict[Tuple, bool]]) -> bool:
+    function: Any,
+    consistency_cache: Optional[Dict[Tuple, Any]]) -> bool:
     if consistency_cache is None:
         return is_func_consistent_with_label(network, observation_set, inconsistency, function)
     key = ("is", _function_eval_key(network, function))
@@ -60,8 +60,8 @@ def _cached_n_func_inconsistent(
         network: Model,
         observation_set: ObservationSet,
         inconsistency: InconsistencySolution,
-        function: Function,
-        consistency_cache: Optional[Dict[Tuple, int]]) -> int:
+    function: Any,
+    consistency_cache: Optional[Dict[Tuple, Any]]) -> int:
     if consistency_cache is None:
         return n_func_inconsistent_with_label(network, observation_set, inconsistency, function)
     key = ("n", _function_eval_key(network, function))
@@ -69,6 +69,128 @@ def _cached_n_func_inconsistent(
         consistency_cache[key] = n_func_inconsistent_with_label(
             network, observation_set, inconsistency, function)
     return consistency_cache[key]
+
+
+def _add_repair_set_for_candidate(
+        inconsistency: InconsistencySolution,
+        inconsistent_node: InconsistentNode,
+    candidate: Any,
+        flipped_edges: List[Edge],
+        added_edges: List[Edge],
+        removed_edges: List[Edge]) -> None:
+    repair_set = RepairSet()
+    repair_set.add_repaired_function(candidate)
+    for edge in flipped_edges:
+        repair_set.add_flipped_edge(edge)
+    for edge in removed_edges:
+        repair_set.remove_edge(edge)
+    for edge in added_edges:
+        repair_set.add_edge(edge)
+    inconsistency.add_repair_set(inconsistent_node.identifier, repair_set)
+
+
+def _mode1_burst_probe_comparable(
+        network: Model,
+        observation_set: ObservationSet,
+        inconsistency: InconsistencySolution,
+    candidates: List[Any],
+    consistency_cache: Optional[Dict[Tuple, Any]]) -> Tuple[set, Optional[Any]]:
+    """
+    Probe sparse candidate bursts for mode 1 before full traversal.
+
+    This evaluates a small, distance-spread subset (including near and far
+    candidates). If none is consistent, caller falls back to exhaustive
+    traversal, preserving semantics.
+    """
+    tested_candidates = set()
+    if not candidates:
+        return tested_candidates, None
+
+    ordered = sorted(candidates, key=lambda c: c.distance_from_original)
+    n_candidates = len(ordered)
+
+    probe_indexes = {0, n_candidates - 1}
+    step = 1
+    while step < n_candidates:
+        probe_indexes.add(min(step, n_candidates - 1))
+        probe_indexes.add(max(n_candidates - 1 - step, 0))
+        step *= 2
+
+    for idx in sorted(probe_indexes):
+        candidate = ordered[idx]
+        if candidate in tested_candidates:
+            continue
+        tested_candidates.add(candidate)
+        if _cached_is_func_consistent(
+                network,
+                observation_set,
+                inconsistency,
+                candidate,
+                consistency_cache):
+            return tested_candidates, candidate
+
+    return tested_candidates, None
+
+
+def _mode1_burst_probe_non_comparable(
+        network: Model,
+        observation_set: ObservationSet,
+        inconsistency: InconsistencySolution,
+    seed_candidate: Any,
+        is_generalize: bool,
+        consistency_cache: Optional[Dict[Tuple, Any]],
+        max_bursts: int = 3):
+    """
+    Probe sparse bursts of the non-comparable space for mode 1.
+
+    It expands candidates in exponentially larger bursts and evaluates only
+    representative functions from each burst. If no solution is found, caller
+    falls back to the full traversal.
+    """
+    queue = deque([seed_candidate])
+    queued_candidates = {seed_candidate}
+    tested_candidates = set()
+    burst_size = 1
+    for _ in range(max_bursts):
+        if not queue:
+            break
+
+        burst_window = []
+        while queue and len(burst_window) < burst_size:
+            candidate = queue.popleft()
+            queued_candidates.discard(candidate)
+            if candidate in tested_candidates:
+                continue
+            tested_candidates.add(candidate)
+            burst_window.append(candidate)
+
+            for new_candidate in candidate.get_replacements(is_generalize):
+                if new_candidate not in queued_candidates and new_candidate not in tested_candidates:
+                    queue.append(new_candidate)
+                    queued_candidates.add(new_candidate)
+
+        if not burst_window:
+            burst_size *= 2
+            continue
+
+        probe_candidates = [burst_window[0]]
+        if len(burst_window) > 1:
+            probe_candidates.append(burst_window[-1])
+
+        for candidate in probe_candidates:
+            inc_type = _cached_n_func_inconsistent(
+                network,
+                observation_set,
+                inconsistency,
+                candidate,
+                consistency_cache,
+            )
+            if inc_type == Inconsistencies.CONSISTENT.value:
+                return candidate
+
+        burst_size *= 2
+
+    return None
 
 
 def search_comparable_functions(
@@ -80,14 +202,19 @@ def search_comparable_functions(
         added_edges: List[Edge],
         removed_edges: List[Edge],
     generalize: bool,
-    consistency_cache: Optional[Dict[Tuple, int | bool]] = None) -> bool:
+        consistency_cache: Optional[Dict[Tuple, Any]] = None) -> bool:
     """
     Searches for comparable functions that can repair the inconsistency of a
     node. It evaluates potential replacement functions and applies the
     necessary edges to resolve the inconsistency.
     """
     sol_found = False
-    original_f = network.get_node(inconsistent_node.identifier).function
+    original_node = network.get_node(inconsistent_node.identifier)
+    if original_node is None:
+        logger.warning(f"Inconsistent node {inconsistent_node.identifier} not found in network")
+        inconsistency.has_impossibility = True
+        return False
+    original_f = original_node.function
 
     if original_f is None:
         logger.warning(f"Inconsistent node {inconsistent_node.identifier} without regulatory function")
@@ -102,12 +229,33 @@ def search_comparable_functions(
     # Get the replacement candidates
     function_repaired = False
     repaired_function_level = -1
-    t_candidates = deque(original_f.pfh_get_replacements(generalize))
-    queued_candidates = set(t_candidates)
+    initial_candidates: List[Any] = list(original_f.pfh_get_replacements(generalize))
+
     tested_candidates = set()
+    if config.solutions == 1 and initial_candidates:
+        tested_candidates, burst_candidate = _mode1_burst_probe_comparable(
+            network,
+            observation_set,
+            inconsistency,
+            initial_candidates,
+            consistency_cache,
+        )
+        if burst_candidate is not None:
+            _add_repair_set_for_candidate(
+                inconsistency,
+                inconsistent_node,
+                burst_candidate,
+                flipped_edges,
+                added_edges,
+                removed_edges,
+            )
+            return True
+
+    t_candidates = deque(initial_candidates)
+    queued_candidates = set(t_candidates)
 
     while t_candidates:
-        candidate = t_candidates.popleft()
+        candidate: Any = t_candidates.popleft()
         queued_candidates.discard(candidate)
         if candidate in tested_candidates:
             continue
@@ -122,16 +270,14 @@ def search_comparable_functions(
             inconsistency,
             candidate,
             consistency_cache):
-            repair_set = RepairSet()
-            repair_set.add_repaired_function(candidate)
-            for edge in flipped_edges:
-                repair_set.add_flipped_edge(edge)
-            for edge in removed_edges:
-                repair_set.remove_edge(edge)
-            for edge in added_edges:
-                repair_set.add_edge(edge)
-            inconsistency.add_repair_set(inconsistent_node.identifier,
-                                         repair_set)
+            _add_repair_set_for_candidate(
+                inconsistency,
+                inconsistent_node,
+                candidate,
+                flipped_edges,
+                added_edges,
+                removed_edges,
+            )
             function_repaired = True
             sol_found = True
             repaired_function_level = candidate.distance_from_original
@@ -155,8 +301,8 @@ def search_non_comparable_functions(
         inconsistent_node: InconsistentNode,
         flipped_edges: List[Edge],
         added_edges: List[Edge],
-    removed_edges: List[Edge],
-    consistency_cache: Optional[Dict[Tuple, int | bool]] = None) -> bool:
+        removed_edges: List[Edge],
+        consistency_cache: Optional[Dict[Tuple, Any]] = None) -> bool:
     """
     Searches for non-comparable functions to resolve inconsistencies in the
     given network. Attempts to replace an inconsistent function with a
@@ -173,7 +319,12 @@ def search_non_comparable_functions(
 
     # Each function must have a list of replacement candidates and each must
     # be tested until it works
-    original_f = network.get_node(inconsistent_node.identifier).function
+    original_node = network.get_node(inconsistent_node.identifier)
+    if original_node is None:
+        logger.warning(f"Inconsistent node {inconsistent_node.identifier} not found in network")
+        inconsistency.has_impossibility = True
+        return False
+    original_f = original_node.function
     original_map = original_f.regulators_by_term
 
     if original_f.get_n_regulators() < 2:
@@ -203,6 +354,35 @@ def search_non_comparable_functions(
 
     candidates.append(new_f)
     queued_candidates.add(new_f)
+
+    if config.solutions == 1:
+        burst_skip_key = ("burst", "non-comparable-skip", inconsistent_node.identifier)
+        should_probe_burst = not (consistency_cache is not None and consistency_cache.get(burst_skip_key, False))
+
+        if should_probe_burst:
+            burst_candidate = _mode1_burst_probe_non_comparable(
+                network,
+                observation_set,
+                inconsistency,
+                new_f,
+                is_generalize,
+                consistency_cache,
+            )
+            if burst_candidate is not None:
+                _add_repair_set_for_candidate(
+                    inconsistency,
+                    inconsistent_node,
+                    burst_candidate,
+                    flipped_edges,
+                    added_edges,
+                    removed_edges,
+                )
+                return True
+
+            # Adaptive cutoff: after the first miss for this node in mode 1,
+            # skip future non-comparable burst probes and go straight to full search.
+            if consistency_cache is not None:
+                consistency_cache[burst_skip_key] = True
 
     logger.debug(f"Finding functions for double inconsistency in {original_f.print_function(network=network)}")
 
@@ -238,16 +418,14 @@ def search_non_comparable_functions(
             # Short-circuiting here avoids unnecessary exploration aimed at
             # collecting equivalent/alternative candidates for richer modes.
             if config.solutions == 1:
-                repair_set = RepairSet()
-                repair_set.add_repaired_function(candidate)
-                for edge in flipped_edges:
-                    repair_set.add_flipped_edge(edge)
-                for edge in removed_edges:
-                    repair_set.remove_edge(edge)
-                for edge in added_edges:
-                    repair_set.add_edge(edge)
-                inconsistency.add_repair_set(inconsistent_node.identifier,
-                                             repair_set)
+                _add_repair_set_for_candidate(
+                    inconsistency,
+                    inconsistent_node,
+                    candidate,
+                    flipped_edges,
+                    added_edges,
+                    removed_edges,
+                )
                 return True
 
             if level_compare:
@@ -337,26 +515,22 @@ def search_non_comparable_functions(
         if level_compare:
             for candidate_set in (equal_level if equal_level else best_below +
                                   best_above):
-                repair_set = RepairSet()
-                repair_set.add_repaired_function(candidate_set)
-                for edge in flipped_edges:
-                    repair_set.add_flipped_edge(edge)
-                for edge in removed_edges:
-                    repair_set.remove_edge(edge)
-                for edge in added_edges:
-                    repair_set.add_edge(edge)
-                inconsistency.add_repair_set(inconsistent_node.identifier,
-                                             repair_set)
+                _add_repair_set_for_candidate(
+                    inconsistency,
+                    inconsistent_node,
+                    candidate_set,
+                    flipped_edges,
+                    added_edges,
+                    removed_edges,
+                )
         else:
             for candidate in consistent_functions:
-                repair_set = RepairSet()
-                repair_set.add_repaired_function(candidate)
-                for edge in flipped_edges:
-                    repair_set.add_flipped_edge(edge)
-                for edge in removed_edges:
-                    repair_set.remove_edge(edge)
-                for edge in added_edges:
-                    repair_set.add_edge(edge)
-                inconsistency.add_repair_set(inconsistent_node.identifier,
-                                             repair_set)
+                _add_repair_set_for_candidate(
+                    inconsistency,
+                    inconsistent_node,
+                    candidate,
+                    flipped_edges,
+                    added_edges,
+                    removed_edges,
+                )
     return sol_found

@@ -104,8 +104,19 @@ class Updater(ABC):
             )
 
             if has_reach:
-                max_bound = 2 * network.dimension # Heuristic: all nodes change twice in the worst case
-                for reach_bound in range(1, max_bound + 1):
+                max_bound = 2 * network.dimension  # Heuristic upper bound
+                lower_bound = Updater._reach_lower_bound(observation_set)
+
+                # Geometric probing greatly reduces the number of full ASP
+                # re-solves when minimal reachable depth is high.
+                reach_bounds = []
+                probe = max(1, min(lower_bound, max_bound))
+                while probe < max_bound:
+                    reach_bounds.append(probe)
+                    probe *= 2
+                reach_bounds.append(max_bound)
+
+                for reach_bound in reach_bounds:
                     result, optimization = Updater._solve_with_optional_reach_bound(
                         network,
                         observation_set,
@@ -125,6 +136,36 @@ class Updater(ABC):
             print(f'Failed to check consistency: {e}')
             sys.exit(-1)
         return result, optimization
+
+    @staticmethod
+    def _reach_lower_bound(observation_set: 'ObservationSet') -> int:
+        """
+        Compute a safe lower bound for reachability depth from observations.
+
+        For each reach experiment, at least the nodes whose observed init/final
+        values differ must change at least once.
+        """
+        global_lb = 1
+        for obs in observation_set.observations:
+            if obs.updater is None or obs.updater.get_type() not in ("reachasync", "reachsync"):
+                continue
+
+            init_by_exp = {}
+            final_by_exp = {}
+            for exp_id, time, node_id, value in obs.data:
+                if time in ("init", 0, "0"):
+                    init_by_exp.setdefault(exp_id, {})[node_id] = value
+                elif time == "final":
+                    final_by_exp.setdefault(exp_id, {})[node_id] = value
+
+            for exp_id, init_map in init_by_exp.items():
+                final_map = final_by_exp.get(exp_id, {})
+                shared_nodes = set(init_map).intersection(final_map)
+                diff_count = sum(1 for node in shared_nodes if init_map[node] != final_map[node])
+                if diff_count > global_lb:
+                    global_lb = diff_count
+
+        return global_lb
 
     @staticmethod
     def _solve_with_optional_reach_bound(
