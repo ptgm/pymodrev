@@ -7,7 +7,7 @@ the configuration.
 
 import sys
 from abc import ABC, abstractmethod
-from typing import List, Tuple, TYPE_CHECKING
+from typing import List, Tuple, TYPE_CHECKING, Optional
 import clingo
 import os
 from pymodrev.network.model import Model
@@ -97,36 +97,79 @@ class Updater(ABC):
                 if config.debug:
                     print(warning_code, file=sys.stderr)
                     print(message, file=sys.stderr)
-            ctl = clingo.Control(['--opt-mode=optN'], logger, 20)
 
-            base_lp = os.path.join(os.path.dirname(__file__), '..', 'asp_rules', 'base.lp')
-            ctl.load(base_lp)
+            has_reach = any(
+                updater.get_type() in ("reachasync", "reachsync")
+                for updater in observation_set.updaters
+            )
 
-            for updater in observation_set.updaters:
-                updater.apply_update_rules(ctl, updater)
-
-            # Generate ASP facts from the internal Model representation
-            asp_facts = network.to_asp_facts()
-            ctl.add("base", [], asp_facts)
-
-            for obs in observation_set.observations:
-                ctl.add("base", [], obs.to_asp_facts(network.dimension))
-
-            ctl.ground([('base', [])])
-            with ctl.solve(yield_=True) as handle:
-                if handle.get().satisfiable:
-                    for model in handle:
-                        if model and model.optimality_proven:
-                            res, opt = Updater.parse_cc_model(model)
-                            result.append(res)
-                            optimization = opt
-                            if config.solutions == 1:
-                                break
-                else:
-                    optimization = -1
+            if has_reach:
+                max_bound = 2 * network.dimension # Heuristic: all nodes change twice in the worst case
+                for reach_bound in range(1, max_bound + 1):
+                    result, optimization = Updater._solve_with_optional_reach_bound(
+                        network,
+                        observation_set,
+                        logger,
+                        reach_bound=reach_bound,
+                    )
+                    if optimization != -1:
+                        break
+            else:
+                result, optimization = Updater._solve_with_optional_reach_bound(
+                    network,
+                    observation_set,
+                    logger,
+                    reach_bound=None,
+                )
         except Exception as e:
             print(f'Failed to check consistency: {e}')
             sys.exit(-1)
+        return result, optimization
+
+    @staticmethod
+    def _solve_with_optional_reach_bound(
+            network: Model,
+            observation_set: 'ObservationSet',
+            logger,
+            reach_bound: Optional[int]) -> Tuple[List[InconsistencySolution], int]:
+        """
+        Solve one consistency instance, optionally fixing reachability to a
+        specific bound for reachasync/reachsync observations.
+        """
+        result: List[InconsistencySolution] = []
+        optimization = -1
+
+        ctl = clingo.Control(['--opt-mode=optN'], logger, 20)
+
+        base_lp = os.path.join(os.path.dirname(__file__), '..', 'asp_rules', 'base.lp')
+        ctl.load(base_lp)
+
+        for updater in observation_set.updaters:
+            updater.apply_update_rules(ctl, updater)
+
+        # Generate ASP facts from the internal Model representation
+        asp_facts = network.to_asp_facts()
+        ctl.add("base", [], asp_facts)
+
+        for obs in observation_set.observations:
+            obs_reach_bound = reach_bound if (
+                reach_bound is not None
+                and obs.updater is not None
+                and obs.updater.get_type() in ("reachasync", "reachsync")
+            ) else None
+            ctl.add("base", [], obs.to_asp_facts(network.dimension, reach_bound=obs_reach_bound))
+
+        ctl.ground([('base', [])])
+        with ctl.solve(yield_=True) as handle:
+            if handle.get().satisfiable:
+                for model in handle:
+                    if model and model.optimality_proven:
+                        res, opt = Updater.parse_cc_model(model)
+                        result.append(res)
+                        optimization = opt
+                        if config.solutions == 1:
+                            break
+
         return result, optimization
 
     @staticmethod

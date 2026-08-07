@@ -44,7 +44,7 @@ class Observation:
         """
         return set(node_id for _, _, node_id, _ in self.data)
 
-    def to_asp_facts(self, dimension: int) -> str:
+    def to_asp_facts(self, dimension: int, reach_bound: Optional[int] = None) -> str:
         """
         Generates ASP facts from the internal observation data.
         """
@@ -68,6 +68,8 @@ class Observation:
         if self.updater.get_type() in [ReachasyncUpdater.get_type(), ReachsyncUpdater.get_type()]:
             for exp_id in self.experiments:
                 facts.append(f"max_time({asp_quote(exp_id)},{2*dimension}).")
+                if reach_bound is not None:
+                    facts.append(f"reach_bound({asp_quote(exp_id)},{reach_bound}).")
 
         return "\n".join(facts) + "\n"
 
