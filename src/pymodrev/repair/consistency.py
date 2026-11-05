@@ -18,20 +18,31 @@ from pymodrev.network.function import Function
 from pymodrev.updaters.updater import Updater
 from pymodrev.configuration import config, Inconsistencies
 from pymodrev.network.exceptions import PyModRevError
+from pymodrev.repair.constraints import get_node_constraints
 
 logger = logging.getLogger(__name__)
 
 
-def check_consistency(network: Model, observation_set: ObservationSet) -> Tuple[List[InconsistencySolution], int]:
+def check_consistency(
+        network: Model,
+        observation_set: ObservationSet,
+        lazy: bool = False,
+        consistency_only: bool | None = None) -> Tuple[List[InconsistencySolution], int]:
     """
     Check network consistency using ASP solver or alternative method.
+
+    With ``lazy`` the solutions are pulled from the solver on demand (see
+    ``Updater.check_consistency``). ``consistency_only`` tells that the
+    solutions will not be repaired afterwards (default: when the configured
+    task is only to check consistency).
     """
     for name,observation in observation_set.observations_dictionary.items():
         for node in observation.get_nodes():
             if node not in network.nodes:
                 logger.warning(f"Observation {name} contains node {node} which is not in the model.")
                 sys.exit(-1)
-    result, optimization = Updater.check_consistency(network, observation_set)
+    result, optimization = Updater.check_consistency(
+        network, observation_set, lazy=lazy, consistency_only=consistency_only)
     return result, optimization
 
 
@@ -92,7 +103,17 @@ def n_func_inconsistent_with_label(
     Checks the consistency of a function against a labeling. It verifies each
     profile and returns the consistency status (consistent, inconsistent, or
     double inconsistency).
+
+    Unless disabled (``config.fast_consistency``), the evaluation is done with
+    the bit-parallel constraint rows of the node (see
+    ``pymodrev.repair.constraints``), which is equivalent to the per-profile
+    walk below but orders of magnitude faster.
     """
+    if config.fast_consistency:
+        constraints = get_node_constraints(network, observation_set, labeling,
+                                           function.node_id)
+        if constraints is not None:
+            return constraints.evaluate(function, network)
     result = Inconsistencies.CONSISTENT.value
     for key in labeling.v_label:
         ret = n_func_inconsistent_with_label_with_profile(network, observation_set, labeling, function, key)
@@ -134,6 +155,11 @@ def is_func_consistent_with_label(
     """
     Checks if a function is consistent with a labeling across all profiles.
     """
+    if config.fast_consistency:
+        constraints = get_node_constraints(network, observation_set, labeling,
+                                           function.node_id)
+        if constraints is not None:
+            return constraints.is_consistent(function, network)
     return all(
         is_func_consistent_with_label_with_profile(network, observation_set, labeling, function, profile)
         for profile in labeling.v_label

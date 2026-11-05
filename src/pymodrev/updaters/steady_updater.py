@@ -126,3 +126,17 @@ class SteadyUpdater(Updater):
                 return Inconsistencies.CONSISTENT.value
             return Inconsistencies.SINGLE_INC_GEN.value
         return result
+
+    @staticmethod
+    def constraint_rows(
+            labeling: InconsistencySolution,
+            node_id: str,
+            profile: str):
+        """
+        See ``Updater.constraint_rows``. A steady state is a fixed point: the
+        node must keep the value it has in the state.
+        """
+        from pymodrev.repair.constraints import ProfileRows, STEADY
+        profile_map = labeling.v_label[profile]
+        time_map = profile_map[next(iter(profile_map))]
+        return ProfileRows(STEADY, [time_map], [time_map[node_id]])

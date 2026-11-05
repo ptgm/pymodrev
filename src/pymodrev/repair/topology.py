@@ -7,7 +7,7 @@ to repair inconsistencies in the network topology.
 
 import logging
 from itertools import combinations
-from typing import List
+from typing import Dict, List, Optional
 
 from pymodrev.network.inconsistency_solution import InconsistencySolution
 from pymodrev.network.inconsistent_node import InconsistentNode
@@ -17,6 +17,7 @@ from pymodrev.network.observation_set import ObservationSet
 from pymodrev.network.function import Function
 from pymodrev.network.edge import Edge
 from pymodrev.repair.consistency import n_func_inconsistent_with_label
+from pymodrev.repair.constraints import get_node_constraints
 from pymodrev.repair.function_search import (
     search_comparable_functions,
     search_non_comparable_functions,
@@ -26,17 +27,109 @@ from pymodrev.configuration import config, Inconsistencies
 logger = logging.getLogger(__name__)
 
 
+def node_repair_key(
+        network: Model,
+        observation_set: ObservationSet,
+        inconsistency: InconsistencySolution,
+        inconsistent_node: InconsistentNode):
+    """
+    A hashable key such that two inconsistent nodes with the same key have
+    exactly the same repairs: the repair of a node only depends on the
+    constraints the labeling imposes on it (and on its repair type), not on the
+    remaining details of the ASP model (e.g. the order in which other nodes
+    were updated). Returns None when the key cannot be computed.
+    """
+    constraints = get_node_constraints(network, observation_set, inconsistency,
+                                       inconsistent_node.identifier)
+    if constraints is None:
+        return None
+    return (inconsistent_node.identifier, inconsistent_node.repair_type,
+            inconsistent_node.topological_error, constraints.signature)
+
+
+def solution_repair_key(
+        network: Model,
+        observation_set: ObservationSet,
+        inconsistency: InconsistencySolution):
+    """
+    Key identifying the repairs of a whole solution: two ASP solutions with the
+    same key lead to exactly the same repair output.
+    """
+    keys = []
+    for node in inconsistency.inconsistent_nodes.values():
+        key = node_repair_key(network, observation_set, inconsistency, node)
+        if key is None:
+            return None
+        keys.append(key)
+    return tuple(keys)
+
+
+def _hopeless(best: Optional[InconsistencySolution],
+              inconsistency: InconsistencySolution,
+              extra_ar: int, extra_flips: int, extra_total: int) -> bool:
+    """
+    True when a solution with (at least) these repair operations would be
+    strictly dominated by ``best`` (no component better, at least one worse),
+    so it could neither become the best solution nor be printed.
+
+    The partial counters of ``inconsistency`` only include the nodes already
+    repaired; ``extra_*`` are lower bounds for the node being repaired.
+    """
+    if best is None or config.solutions not in (2, 3):
+        return False
+    ar = inconsistency.n_ar_operations + extra_ar
+    flips = inconsistency.n_e_operations + extra_flips
+    total = inconsistency.n_repair_operations + extra_total
+    return (ar >= best.n_ar_operations
+            and flips >= best.n_e_operations
+            and total >= best.n_repair_operations
+            and (ar > best.n_ar_operations
+                 or flips > best.n_e_operations
+                 or total > best.n_repair_operations))
+
+
 def repair_inconsistencies(
         network: Model,
         observation_set: ObservationSet,
-        inconsistency: InconsistencySolution) -> None:
+        inconsistency: InconsistencySolution,
+        node_cache: Optional[Dict] = None,
+        best: Optional[InconsistencySolution] = None) -> None:
     """
     This function receives an inconsistent model with a set of nodes to be
     repaired and tries to repair the target nodes making the model consistent
     returning the set of repair operations to be applied.
+
+    ``node_cache`` (optional) memoises the repair of each node across the
+    (usually many) ASP solutions of the same problem, which very often only
+    differ in details that are irrelevant for the repair of a given node.
+
+    ``best`` (optional) is the best solution found so far: the search for the
+    repairs of a solution is abandoned (flagging ``inconsistency.dominated``)
+    as soon as it is known it cannot be better than it.
     """
     for node_id, node in inconsistency.inconsistent_nodes.items():
-        repair_node_consistency(network, observation_set, inconsistency, node)
+        key = None
+        if node_cache is not None:
+            key = node_repair_key(network, observation_set, inconsistency, node)
+        cached = node_cache.get(key) if key is not None else None
+        if cached is not None:
+            repair_sets, impossible = cached
+            for repair_set in repair_sets:
+                inconsistency.add_repair_set(node_id, repair_set)
+            if impossible:
+                inconsistency.has_impossibility = True
+        else:
+            if key is not None:
+                inconsistency._repair_set_log = []
+            try:
+                repair_node_consistency(network, observation_set, inconsistency,
+                                        node, best)
+            finally:
+                log, inconsistency._repair_set_log = inconsistency._repair_set_log, None
+            # a node whose search was cut short because of ``best`` says
+            # nothing about its real repairs: do not memoise it
+            if key is not None and not inconsistency.dominated:
+                node_cache[key] = (log, inconsistency.has_impossibility)
         if inconsistency.has_impossibility:
             logger.debug(f"#Found a node with impossibility - {node_id}")
             return
@@ -47,7 +140,8 @@ def repair_node_consistency(
         network: Model,
         observation_set: ObservationSet,
         inconsistency: InconsistencySolution,
-        inconsistent_node: InconsistentNode) -> None:
+        inconsistent_node: InconsistentNode,
+        best: Optional[InconsistencySolution] = None) -> None:
     """
     This function repairs a given node and determines all possible solutions
     consider 0 .. N add/remove repair operations, starting with 0 repairs of
@@ -80,6 +174,12 @@ def repair_node_consistency(
 
     # Iterate through the number of add/remove operations
     for n_operations in range(max_n_remove + max_n_add + 1):
+        if not inconsistent_node.is_repaired() and \
+                _hopeless(best, inconsistency, n_operations, 0, n_operations):
+            logger.debug(f"Abandoning node {inconsistent_node.identifier}: dominated by the best solution")
+            inconsistency.dominated = True
+            inconsistency.has_impossibility = True
+            return
         # Add/remove operations are prioritized lexicographically in repair
         # quality. Once a node already has a repair with fewer add/remove
         # operations, higher n_operations cannot improve it.
@@ -142,7 +242,7 @@ def repair_node_consistency(
                     is_sol = repair_node_consistency_flipping_edges(
                         network, observation_set, inconsistency, inconsistent_node,
                         add_combination, remove_combination,
-                        consistency_cache)
+                        consistency_cache, best)
 
                     # Add and remove edges for the original network
                     for edge in remove_combination:
@@ -176,7 +276,8 @@ def repair_node_consistency_flipping_edges(
         inconsistent_node: InconsistentNode,
         added_edges: List[Edge],
         removed_edges: List[Edge],
-        consistency_cache: dict) -> bool:
+        consistency_cache: dict,
+        best: Optional[InconsistencySolution] = None) -> bool:
     """
     Tries to repair a node's consistency by flipping edges in the network.
     It tests different combinations of edge flips and checks if the
@@ -198,7 +299,11 @@ def repair_node_consistency_flipping_edges(
     # Limit the number of flip edges if the node has already been repaired
     if inconsistent_node.is_repaired():
         iterations = inconsistent_node.n_flip_edges_operations
+    n_add_remove = len(added_edges) + len(removed_edges)
     for n_edges in range(iterations + 1):
+        if not inconsistent_node.is_repaired() and _hopeless(
+                best, inconsistency, n_add_remove, n_edges, n_add_remove + n_edges):
+            break
         logger.debug(f"Testing with {n_edges} edge flips")
 
         # For each set of flipping edges
@@ -328,6 +433,18 @@ def repair_node_consistency_functions(
         if (n_ra_op == len(added_edges) + len(removed_edges)) and (
                 n_fe_op == len(flipped_edges)) and (n_op == n_ra_op + n_fe_op):
             logger.debug("Better solution already found. No function search.")
+            return False
+
+    # No function (whatever its shape) can be consistent when the rows cannot
+    # be separated by the regulators of the function: skip the search
+    target_function = network.get_node(inconsistent_node.identifier).function
+    if target_function is not None and target_function.regulators:
+        constraints = get_node_constraints(network, observation_set, inconsistency,
+                                           inconsistent_node.identifier)
+        if constraints is not None and not constraints.separable(
+                [(reg, network.get_edge(reg, target_function.node_id).sign)
+                 for reg in target_function.regulators]):
+            logger.debug("Constraints not separable with these regulators/signs")
             return False
 
     # Model is not consistent and a function change is necessary

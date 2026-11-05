@@ -26,6 +26,7 @@ repair(V) :- topologicalerror(V).
 #minimize {1@2,top,V : topologicalerror(V)}.
 
 #show update/3.
+#show topologicalerror/1.
 
 % show inconsistent nodes per exeperiment
 inc(P,V) :- vlabel(P,T+1,V,0), 1{noneNegative(P,T,V,Id):functionOr(V,Id)}, vertex(V), exp(P,async), r_part(V), not topologicalerror(V), time(P,T), time(P,T+1), update(P,T,V).

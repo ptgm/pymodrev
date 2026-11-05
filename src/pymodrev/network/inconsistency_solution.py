@@ -42,6 +42,20 @@ class InconsistencySolution:
         self._n_e_operations = 0
         self._n_repair_operations = 0
         self._has_impossibility = False  # Solution is impossible to repair
+        # NodeConstraints per node (see pymodrev.repair.constraints); depends
+        # only on the labeling, so it is shared by every candidate function.
+        self._constraint_cache = {}
+        # the repair search was abandoned because the solution cannot be
+        # better than the best one found so far
+        self.dominated = False
+        # when not None, every repair set added is also appended here
+        # (used to memoise the repair of a node across ASP solutions)
+        self._repair_set_log = None
+
+    @property
+    def constraint_cache(self) -> Dict:
+        """Cache of NodeConstraints by node id."""
+        return self._constraint_cache
 
     @property
     def inconsistent_nodes(self) -> Dict[str, InconsistentNode]:
@@ -223,6 +237,8 @@ class InconsistencySolution:
         Adds a repair set for the node with the given identifier and updates
         repair statistics.
         """
+        if self._repair_set_log is not None:
+            self._repair_set_log.append(repair_set)
         target = self.inconsistent_nodes[node_id]
         if target:
             if not target.repaired:

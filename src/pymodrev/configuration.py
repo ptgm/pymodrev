@@ -51,6 +51,21 @@ class Configuration:
     exact_middle_function_determination: bool = True
     ignore_warnings: bool = False
     force_optimum: bool = False
+    # evaluate candidate functions with the bit-parallel constraint rows
+    # (pymodrev.repair.constraints); set to False to use the legacy
+    # per-updater walk (kept for differential testing)
+    fast_consistency: bool = True
+    # clingo: core-guided optimisation (much faster than branch-and-bound on
+    # the repaired-nodes objective); False restores the clingo defaults
+    fast_asp: bool = True
+    # reachability witnesses handed to the repair search for each optimal set
+    # of repaired nodes: 'shortest' (default) or 'all' (every path within the
+    # horizon: exponentially many)
+    reach_witnesses: str = 'mixed'  # 'shortest' | 'mixed' | 'all'
+    # upper bound on the witnesses per optimal set of repaired nodes (0: no limit)
+    max_witnesses: int = 0
+    # 'mixed' mode: arbitrary non-shortest witnesses added per node set
+    extra_witnesses: int = 20
     check_consistency: bool = False  # Just check the consistency of the model and return
     fixed_nodes = ""  # List of node ids not to repair
     fixed_edges = ""  # List of edge ids not to repair

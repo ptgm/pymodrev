@@ -8,6 +8,7 @@ configuration.
 from abc import abstractmethod
 import clingo
 import os
+from typing import Optional
 from pymodrev.updaters.updater import Updater
 from pymodrev.network.function import Function
 from pymodrev.network.inconsistency_solution import InconsistencySolution
@@ -55,3 +56,29 @@ class TimeSeriesUpdater(Updater):
         updates = labeling.updates[time][profile]
         return any(update == function.node_id for update in updates)
 
+
+    @staticmethod
+    def transition_rows(
+            labeling: InconsistencySolution,
+            node_id: str,
+            profile: str,
+            only_when_updated: bool) -> Optional['ProfileRows']:
+        """
+        Rows of a time series: one per transition t -> t+1 (in which the node
+        is updated, if ``only_when_updated``).
+        """
+        from pymodrev.repair.constraints import ProfileRows, DYNAMIC
+        profile_map = labeling.v_label[profile]
+        states = []
+        outs = []
+        time = 0
+        while time in profile_map and (time + 1) in profile_map:
+            if only_when_updated:
+                updates = labeling.updates.get(time, {}).get(profile, ())
+                if node_id not in updates:
+                    time += 1
+                    continue
+            states.append(profile_map[time])
+            outs.append(profile_map[time + 1][node_id])
+            time += 1
+        return ProfileRows(DYNAMIC, states, outs)

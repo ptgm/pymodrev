@@ -140,7 +140,8 @@ def main():
         sys.exit(1)
 
     # Check consistency
-    f_inconsistencies, optimization = check_consistency(network, observation_set)
+    f_inconsistencies, optimization = check_consistency(
+        network, observation_set, lazy=(config.task != 'c'))
     if config.task == 'c' or optimization == 0:
         print(consistency_to_str(f_inconsistencies, optimization))
         sys.exit(0)

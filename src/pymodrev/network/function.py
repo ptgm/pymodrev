@@ -6,11 +6,42 @@ including clause management, Hasse diagram navigation, and consistency
 analysis.
 """
 
-from typing import Set, Dict, List
+from typing import Set, Dict, List, Tuple
 from bitarray import bitarray
 from pyfunctionhood.function import Function as PFHFunction
 from pyfunctionhood.clause import Clause
 from pyfunctionhood.hassediagram import HasseDiagram
+
+
+# ---------------------------------------------------------------------------
+# Hasse-diagram caches
+#
+# ``HasseDiagram(n)`` builds the whole powerset graph of n variables in its
+# constructor, and it only depends on ``n``. It used to be rebuilt on every
+# single neighbourhood query (around half of the total repair time on the HSC
+# reachability benchmark). Immediate parents/children of a monotone function
+# only depend on the function itself, so they are memoised too: different
+# inconsistency solutions, topologies and nodes revisit the very same
+# functions many times.
+# ---------------------------------------------------------------------------
+_HASSE_DIAGRAMS: Dict[int, HasseDiagram] = {}
+_HASSE_NEIGHBOURS: Dict[Tuple[int, str, PFHFunction], frozenset] = {}
+_HASSE_NEIGHBOURS_MAX = 250_000
+
+
+def get_hasse_diagram(n_vars: int) -> HasseDiagram:
+    """Returns a (shared) HasseDiagram for ``n_vars`` variables."""
+    diagram = _HASSE_DIAGRAMS.get(n_vars)
+    if diagram is None:
+        diagram = HasseDiagram(n_vars)
+        _HASSE_DIAGRAMS[n_vars] = diagram
+    return diagram
+
+
+def clear_hasse_caches() -> None:
+    """Drops every memoised Hasse diagram / neighbourhood."""
+    _HASSE_DIAGRAMS.clear()
+    _HASSE_NEIGHBOURS.clear()
 
 
 class Function:
@@ -35,6 +66,9 @@ class Function:
         # {1: ['node_1', 'node_2'], 2: ['node_1', 'node_3'], 3: ['node_3']}
         self._regulators_by_term = {}
         self._pfh_function: PFHFunction | None = None
+        # hash of the pfh function (hashing a pfh function XORs the hash of
+        # every clause, which is surprisingly hot in the search loops)
+        self._hash: int | None = None
 
     @property
     def node_id(self) -> str:
@@ -85,6 +119,7 @@ class Function:
     @pfh_function.setter
     def pfh_function(self, value: PFHFunction):
         self._pfh_function = value
+        self._hash = None
 
     def get_clauses(self) -> Set[Clause]:
         """
@@ -206,9 +241,11 @@ class Function:
     def __hash__(self) -> int:
         if not self.regulators:
             return hash(self.node_id) # Consistent hash for empty function of this node
-        if self.pfh_function is None:
-            self.create_pfh_function()
-        return hash(self.pfh_function)
+        if self._hash is None:
+            if self.pfh_function is None:
+                self.create_pfh_function()
+            self._hash = hash(self.pfh_function)
+        return self._hash
 
     def compare_level(self, other) -> int:
         """
@@ -328,6 +365,7 @@ class Function:
         Adds a clause to the PFH function.
         """
         self.pfh_function.add_clause(c)
+        self._hash = None
 
     def pfh_get_size(self) -> int:
         """
@@ -403,7 +441,13 @@ class Function:
         """
         Helper function to get parent/child relationships from Hasse diagram.
         """
-        hd = HasseDiagram(self.pfh_function.get_size())
+        size = self.pfh_function.get_size()
+        key = (size, relationship_type, self.pfh_function)
+        cached = _HASSE_NEIGHBOURS.get(key)
+        if cached is not None:
+            return cached
+
+        hd = get_hasse_diagram(size)
 
         # Get the appropriate method based on relationship type
         get_method = {
@@ -413,7 +457,11 @@ class Function:
 
         # Get and combine sets
         s1, s2, s3 = get_method(self.pfh_function)
-        return s1 | s2 | s3  # Using set union operator
+        result = frozenset(s1 | s2 | s3)
+        if len(_HASSE_NEIGHBOURS) >= _HASSE_NEIGHBOURS_MAX:
+            _HASSE_NEIGHBOURS.clear()
+        _HASSE_NEIGHBOURS[key] = result
+        return result
 
     def create_function_from_element(self, element):
         """

@@ -166,3 +166,13 @@ class AsyncUpdater(TimeSeriesUpdater):
             time += 1
         return result
 
+    @staticmethod
+    def constraint_rows(
+            labeling: InconsistencySolution,
+            node_id: str,
+            profile: str):
+        """
+        See ``Updater.constraint_rows``.
+        """
+        return TimeSeriesUpdater.transition_rows(
+            labeling, node_id, profile, only_when_updated=True)
